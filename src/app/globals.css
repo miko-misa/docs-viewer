@@ -408,9 +408,36 @@ body {
 }
 
 .docs-content .directive-column {
-  border-left-color: var(--color-accent-amber);
-  background: color-mix(in srgb, var(--color-accent-amber) 6%, transparent);
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  margin: 1.5rem 0;
 }
+
+.docs-content .directive-column-title {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.docs-content .directive-column-content {
+  color: var(--foreground);
+}
+
+/* タイトルがない場合のコンテンツのみのスタイル */
+.docs-content .directive-column:not(:has(.directive-column-title)) .directive-column-content {
+  border-radius: 0.375rem;
+}
+
+/* コンテンツ内の段落のマージン調整 */
+.docs-content .directive-column-content > p:first-child {
+  margin-top: 0;
+}
+
+.docs-content .directive-column-content > p:last-child {
+  margin-bottom: 0;
+}
+
 
 /* Typst数式のスタイリング */
 .docs-content svg.typst-doc {
@@ -580,4 +607,127 @@ body {
 .docs-content ul li:has(task-checkbox),
 .docs-content ol li:has(task-checkbox) {
   list-style: none !important;
+}
+
+/* ========================================
+   目次（TOC）スタイル
+   ======================================== */
+
+.toc {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.toc-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.toc-item {
+  margin: 0;
+}
+
+.toc-link {
+  display: block;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0.25rem;
+}
+
+/* Level 4 (directive columns) - dot style instead of border */
+.toc-item[data-level="4"] .toc-link {
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem 0.25rem 1.25rem;
+  opacity: 0.85;
+  border-left: none;
+  position: relative;
+}
+
+.toc-item[data-level="4"] .toc-link::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--muted-foreground);
+  opacity: 0.6;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toc-item[data-level="4"] .toc-link:hover {
+  opacity: 1;
+}
+
+.toc-item[data-level="4"] .toc-link:hover::before {
+  opacity: 1;
+  background-color: var(--color-primary-600);
+  width: 5px;
+  height: 5px;
+}
+
+.toc-item[data-level="4"] .toc-link[aria-current="true"]::before {
+  opacity: 1;
+  background-color: var(--color-primary-600);
+  width: 6px;
+  height: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .toc-item[data-level="4"] .toc-link[aria-current="true"]::before {
+    background-color: var(--color-primary-500);
+  }
+  
+  .toc-item[data-level="4"] .toc-link:hover::before {
+    background-color: var(--color-primary-500);
+  }
+}
+
+.toc-link:hover {
+  color: var(--foreground);
+  background-color: var(--muted-background);
+}
+
+/* ネストされたリストのインデント */
+.toc-list .toc-list {
+  margin-top: 0.25rem;
+  margin-left: 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+/* アクティブな項目 - スムーズなアニメーションとサイズ変更 */
+.toc-link[aria-current="true"] {
+  color: var(--color-primary-600);
+  font-weight: 600;
+  font-size: 0.9375rem; /* 0.875rem → 0.9375rem (約7%増) */
+  background-color: color-mix(in srgb, var(--color-primary-100) 30%, transparent);
+  transform: translateX(2px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .toc-link[aria-current="true"] {
+    color: var(--color-primary-500);
+    background-color: color-mix(in srgb, var(--color-primary-900) 15%, transparent);
+  }
 }
