@@ -1,10 +1,13 @@
 import type { GroupConfig } from "@/lib/docs";
+import type { TocItem } from "@/lib/toc";
+import { Toc } from "./Toc";
 
 type DocLayoutProps = {
   title: string;
   tags?: string[];
   groupConfig?: GroupConfig;
   updatedAt: Date;
+  toc: TocItem[];
   children: React.ReactNode;
 };
 
@@ -13,7 +16,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
   timeStyle: "short",
 });
 
-export function DocLayout({ title, tags, groupConfig, updatedAt, children }: DocLayoutProps) {
+export function DocLayout({ title, tags, groupConfig, updatedAt, toc, children }: DocLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header
@@ -73,7 +76,7 @@ export function DocLayout({ title, tags, groupConfig, updatedAt, children }: Doc
             color: "var(--muted-foreground)",
           }}
         >
-          TOC をここに表示予定です。
+          <Toc items={toc} />
         </aside>
         <main className="flex-1">
           <article className="docs-content mx-auto w-full max-w-3xl">{children}</article>

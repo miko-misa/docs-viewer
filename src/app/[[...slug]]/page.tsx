@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DocLayout } from "@/components/doc-layout";
 import { DocNotFoundError, type DocRecord, getDocBySlug } from "@/lib/docs";
 import { renderMarkdown } from "@/lib/markdown";
+import { extractToc } from "@/lib/toc";
 
 type PageProps = {
   params: Promise<{
@@ -41,6 +42,7 @@ export default async function DocPage(props: PageProps) {
   }
 
   const rendered = await renderMarkdown(doc.content);
+  const toc = extractToc(doc.content);
 
   return (
     <DocLayout
@@ -48,6 +50,7 @@ export default async function DocPage(props: PageProps) {
       tags={doc.tags}
       groupConfig={doc.groupConfig}
       updatedAt={doc.lastModified}
+      toc={toc}
     >
       {rendered}
     </DocLayout>
