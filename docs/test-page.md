@@ -38,18 +38,77 @@ $$
 
 ## ディレクティブのテスト
 
-:::{theorem}
+:::theorem
 ピタゴラスの定理: 直角三角形において、斜辺の長さの2乗は他の2辺の長さの2乗の和に等しい。
 
 すなわち、$a^2 + b^2 = c^2$ が成り立つ。
 :::
 
-:::{proof}
+:::proof
 証明は省略します。
 :::
 
-:::{column}
-これはコラムの例です。補足情報を記載します。
+:::column
+@title:重要な補足
+@color:#3b82f6
+@title-color:#ffffff
+@background:#eff6ff
+@border-color:#3b82f6
+@border-width:4px
+
+これは青い帯と淡い青の背景を持つコラムの例です。重要な補足情報を記載します。
+:::
+
+:::column
+@title:注意事項
+@color:#ef4444
+@title-color:#ffffff
+@background:#fee2e2
+@border-color:#ef4444
+
+タイトルは赤、背景は淡い赤のコラムです。注意が必要な内容を強調できます。
+:::
+
+:::column
+@title:メモ
+@color:#10b981
+@title-color:#ffffff
+@background:#d1fae5
+@border-color:#10b981
+
+緑色のコラムでメモを記載できます。
+:::
+
+:::column-toc
+@title:シンプルなコラム
+
+タイトルのみで色指定なし(デフォルトスタイル)
+:::
+
+:::column
+@background:#f3f4f6
+
+タイトルなし、背景色のみのシンプルなコンテナです。左ボーダーはありません。
+:::
+
+:::column
+@background:#fef3c7
+@border-color:#f59e0b
+@border-width:3px
+
+タイトルなし、背景色あり、左ボーダーも表示する例です。
+:::
+
+:::column
+@title:カスタムボーダー
+@color:#8b5cf6
+@title-color:#ffffff
+@background:#f5f3ff
+@border-color:#8b5cf6
+@border-width:6px
+@border-style:dashed
+
+太い破線ボーダーとパープルのテーマです。
 :::
 
 ## リストのテスト
