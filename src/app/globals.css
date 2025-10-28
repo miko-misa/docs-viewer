@@ -212,7 +212,7 @@ body {
 
 /* 見出しのハッシュ記号 */
 .docs-content .heading-hash {
-  color: #64748b; /* 青みがかった灰色 */
+  color: #6fa9d8; /* より青みの強い明るい色 */
   font-weight: 400;
   margin-right: 0.5rem;
   user-select: none;
@@ -220,7 +220,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
   .docs-content .heading-hash {
-    color: #475569; /* ダークモードでは少し暗め */
+    color: #36a6fa; /* ダークモードでも青め */
   }
 }
 
@@ -569,12 +569,15 @@ body {
 }
 
 /* タスクリスト */
-.docs-content input[type="checkbox"] {
-  margin-right: 0.5rem;
-  cursor: pointer;
+.docs-content li:has(task-checkbox) {
+  list-style: none !important;
+  margin-left: -1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
 }
 
-.docs-content li:has(input[type="checkbox"]) {
-  list-style: none;
-  margin-left: -1.5rem;
+.docs-content ul li:has(task-checkbox),
+.docs-content ol li:has(task-checkbox) {
+  list-style: none !important;
 }
