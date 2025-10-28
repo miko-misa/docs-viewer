@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import remarkDirective from "remark-directive";
 import remarkRehype from "remark-rehype";
+import rehypeSlug from "rehype-slug";
 import rehypeTypst from "@myriaddreamin/rehype-typst";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeReact from "rehype-react";
@@ -18,7 +19,7 @@ import {
   HeadingH6,
 } from "../components/Heading";
 import { RefLink } from "../components/RefLink";
-import { DirectiveWrapper } from "../components/DirectiveWrapper";
+import DirectiveWrapper from "../components/DirectiveWrapper";
 import { TypstSvg } from "../components/typst-svg";
 import { CheckIcon } from "../components/CheckIcon";
 import { TaskCheckbox } from "../components/TaskCheckbox";
@@ -29,6 +30,7 @@ import type { Element, Properties } from "hast";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { jsxDEV } from "react/jsx-dev-runtime";
 import type { Schema } from "hast-util-sanitize";
+import { slug } from "github-slugger";
 
 type DirectiveNode = Parent & {
   name?: string;
@@ -52,6 +54,7 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
     }
 
     const directive = node as DirectiveNode;
+
     const data = directive.data || (directive.data = {});
 
     const tagName =
@@ -63,15 +66,92 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
 
     data.hName = data.hName ?? tagName;
 
-    const classes = [`directive`, directive.name ? `directive-${directive.name}` : null].filter(
+    const isColumnToc = directive.name === "column-toc";
+    const baseName = isColumnToc ? "column" : directive.name || "";
+
+    const classes = [`directive`, baseName ? `directive-${baseName}` : null].filter(
       Boolean,
     );
 
-    data.hProperties = {
+    const hProperties: Record<string, unknown> = {
       ...(directive.attributes ?? {}),
       ...(data.hProperties ?? {}),
       className: classes,
     };
+
+    if ((directive.name === "column" || isColumnToc) && directive.children) {
+      const children = directive.children as Parent[];
+      let title = "";
+      
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        if (child.type === "paragraph" && child.children) {
+          const nodes = child.children as any[];
+          let reconstructedText = "";
+          
+          for (const node of nodes) {
+            if (node.type === "text") {
+              reconstructedText += node.value || "";
+            } else if (node.type === "textDirective") {
+              reconstructedText += ":" + (node.name || "");
+            } else if (node.type === "break") {
+              reconstructedText += "\n";
+            }
+          }
+          
+          const lines = reconstructedText.split("\n");
+          const contentLines: string[] = [];
+          let hasMetadata = false;
+          
+          for (const line of lines) {
+            const trimmed = line.trim();
+            
+            if (trimmed.startsWith("@title:")) {
+              title = trimmed.substring(7).trim();
+              hProperties["data-title"] = title;
+              hasMetadata = true;
+            } else if (trimmed.startsWith("@title-color:")) {
+              hProperties["data-title-color"] = trimmed.substring(13).trim();
+              hasMetadata = true;
+            } else if (trimmed.startsWith("@color:")) {
+              hProperties["data-color"] = trimmed.substring(7).trim();
+              hasMetadata = true;
+            } else if (trimmed.startsWith("@background:")) {
+              hProperties["data-background"] = trimmed.substring(12).trim();
+              hasMetadata = true;
+            } else if (trimmed.startsWith("@border-color:")) {
+              hProperties["data-border-color"] = trimmed.substring(14).trim();
+              hasMetadata = true;
+            } else if (trimmed.startsWith("@border-width:")) {
+              hProperties["data-border-width"] = trimmed.substring(14).trim();
+              hasMetadata = true;
+            } else if (trimmed.startsWith("@border-style:")) {
+              hProperties["data-border-style"] = trimmed.substring(14).trim();
+              hasMetadata = true;
+            } else if (trimmed !== "") {
+              contentLines.push(line);
+            }
+          }
+          
+          if (hasMetadata) {
+            const newContent = contentLines.join("\n").trim();
+            
+            if (newContent) {
+              child.children = [{ type: "text", value: newContent }] as any;
+            } else {
+              children.splice(i, 1);
+              i--;
+            }
+          }
+        }
+      }
+
+      if (isColumnToc && title) {
+        hProperties["id"] = slug(title);
+      }
+    }
+
+    data.hProperties = hProperties;
   });
 };
 
@@ -121,7 +201,17 @@ const sanitizeSchema: Schema = {
   attributes: {
     "*": ["className", "id"],
     a: ["href", "ref", "target", "rel"],
-    div: ["data-name", "data-value"],
+    div: [
+      "data-name",
+      "data-value",
+      "data-title",
+      "data-title-color",
+      "data-color",
+      "data-background",
+      "data-border-color",
+      "data-border-width",
+      "data-border-style",
+    ],
     img: ["src", "alt", "title", "width", "height"],
     "task-checkbox": ["checked"],
     svg: [
@@ -176,6 +266,7 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkDirective)
     .use(remarkTransformDirectives)
     .use(remarkRehype, { allowDangerousHtml: false })
+    .use(rehypeSlug)
     .use(rehypeTypst)
     .use(enforceInlineMathRendering)
     .use(preserveTypstStyles)
@@ -251,7 +342,6 @@ const preserveTypstStyles: Plugin<[], Parent> = () => (tree: Parent) => {
   });
 };
 
-// テキストノード内の✅をCheckIconに置き換える
 const replaceCheckmarks: Plugin<[], Parent> = () => (tree: Parent) => {
   visit(tree, "text", (node, index, parent) => {
     if (typeof index !== "number" || !parent) return;
@@ -262,13 +352,11 @@ const replaceCheckmarks: Plugin<[], Parent> = () => (tree: Parent) => {
 
     if (!text.includes("✅")) return;
 
-    // ✅で分割して、要素として再構築
     const parts = text.split("✅");
     const newNodes: Array<Element | { type: "text"; value: string }> = [];
 
     parts.forEach((part, i) => {
       if (i > 0) {
-        // CheckIconを表すカスタム要素を挿入
         newNodes.push({
           type: "element",
           tagName: "check-icon",
@@ -281,12 +369,10 @@ const replaceCheckmarks: Plugin<[], Parent> = () => (tree: Parent) => {
       }
     });
 
-    // 親ノードの子要素を置き換え
     (parent as Parent).children.splice(index, 1, ...newNodes);
   });
 };
 
-// input[type="checkbox"]をTaskCheckboxコンポーネントに置き換える
 const replaceTaskCheckboxes: Plugin<[], Parent> = () => (tree: Parent) => {
   visit(tree, "element", (node, index, parent) => {
     if (typeof index !== "number" || !parent) return;
@@ -298,7 +384,6 @@ const replaceTaskCheckboxes: Plugin<[], Parent> = () => (tree: Parent) => {
     const props = element.properties as Properties;
     if (props?.type !== "checkbox") return;
 
-    // TaskCheckboxを表すカスタム要素に置き換え
     const checked = props.checked === true || props.checked === "true";
     const taskCheckbox: Element = {
       type: "element",
