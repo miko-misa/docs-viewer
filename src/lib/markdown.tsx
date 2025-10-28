@@ -3,6 +3,7 @@ import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import remarkDirective from "remark-directive";
 import remarkRehype from "remark-rehype";
 import rehypeTypst from "@myriaddreamin/rehype-typst";
@@ -167,6 +168,7 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkParse)
     .use(remarkMath)
     .use(remarkGfm)
+    .use(remarkBreaks)
     .use(remarkDirective)
     .use(remarkTransformDirectives)
     .use(remarkRehype, { allowDangerousHtml: false })

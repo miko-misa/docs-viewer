@@ -1,22 +1,80 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted-foreground: #3f3f46;
-  --color-background: #ffffff;
-  --color-foreground: #171717;
+  /* 寒色系カラーパレット（ライトモード） */
+  /* プライマリカラー - 青系 */
+  --color-primary-50: #f0f7ff;
+  --color-primary-100: #e0efff;
+  --color-primary-200: #b9dffe;
+  --color-primary-300: #7cc4fd;
+  --color-primary-400: #36a6fa;
+  --color-primary-500: #0c8ce9;
+  --color-primary-600: #006fc7;
+  --color-primary-700: #0158a1;
+  --color-primary-800: #064b85;
+  --color-primary-900: #0b3f6e;
+  
+  /* 背景とテキスト */
+  --background: #fafbfc;
+  --foreground: #1e293b;
+  --muted-foreground: #475569;
+  --muted-background: #f1f5f9;
+  
+  /* アクセントカラー */
+  --color-accent-teal: #0d9488;
+  --color-accent-purple: #7c3aed;
+  --color-accent-amber: #d97706;
+  
+  /* ボーダーとサブテキスト */
+  --color-border: #cbd5e1;
+  --color-border-subtle: #e2e8f0;
+  
+  /* コードブロック */
+  --color-code-bg: #f1f5f9;
+  --color-code-border: #e2e8f0;
+  
+  --color-background: #fafbfc;
+  --color-foreground: #1e293b;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --muted-foreground: #a1a1aa;
-    --color-background: #0a0a0a;
-    --color-foreground: #ededed;
+    /* 寒色系カラーパレット（ダークモード） */
+    /* プライマリカラー - 青系 */
+    --color-primary-50: #0b3f6e;
+    --color-primary-100: #064b85;
+    --color-primary-200: #0158a1;
+    --color-primary-300: #006fc7;
+    --color-primary-400: #0c8ce9;
+    --color-primary-500: #36a6fa;
+    --color-primary-600: #7cc4fd;
+    --color-primary-700: #b9dffe;
+    --color-primary-800: #e0efff;
+    --color-primary-900: #f0f7ff;
+    
+    /* 背景とテキスト */
+    --background: #0f1419;
+    --foreground: #e2e8f0;
+    --muted-foreground: #94a3b8;
+    --muted-background: #1e293b;
+    
+    /* アクセントカラー */
+    --color-accent-teal: #14b8a6;
+    --color-accent-purple: #a78bfa;
+    --color-accent-amber: #fbbf24;
+    
+    /* ボーダーとサブテキスト */
+    --color-border: #334155;
+    --color-border-subtle: #1e293b;
+    
+    /* コードブロック */
+    --color-code-bg: #1e293b;
+    --color-code-border: #334155;
+    
+    --color-background: #0f1419;
+    --color-foreground: #e2e8f0;
   }
 }
 
@@ -27,50 +85,227 @@ body {
 }
 
 .docs-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  line-height: 1.8;
+  line-height: 1.75;
   font-size: 1rem;
 }
 
 .docs-content h1,
 .docs-content h2,
-.docs-content h3 {
+.docs-content h3,
+.docs-content h4,
+.docs-content h5,
+.docs-content h6 {
   font-weight: 600;
   line-height: 1.3;
   color: var(--foreground);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  margin-top: 3rem; /* デフォルトは1.5行分の余白 */
+}
+
+/* ページの先頭の見出しは余白なし */
+.docs-content h1:first-child,
+.docs-content h2:first-child,
+.docs-content h3:first-child,
+.docs-content h4:first-child,
+.docs-content h5:first-child,
+.docs-content h6:first-child {
+  margin-top: 0;
+}
+
+/* 見出しの直後の見出しは余白なし */
+.docs-content h1 + h1,
+.docs-content h1 + h2,
+.docs-content h1 + h3,
+.docs-content h1 + h4,
+.docs-content h1 + h5,
+.docs-content h1 + h6,
+.docs-content h2 + h1,
+.docs-content h2 + h2,
+.docs-content h2 + h3,
+.docs-content h2 + h4,
+.docs-content h2 + h5,
+.docs-content h2 + h6,
+.docs-content h3 + h1,
+.docs-content h3 + h2,
+.docs-content h3 + h3,
+.docs-content h3 + h4,
+.docs-content h3 + h5,
+.docs-content h3 + h6,
+.docs-content h4 + h1,
+.docs-content h4 + h2,
+.docs-content h4 + h3,
+.docs-content h4 + h4,
+.docs-content h4 + h5,
+.docs-content h4 + h6,
+.docs-content h5 + h1,
+.docs-content h5 + h2,
+.docs-content h5 + h3,
+.docs-content h5 + h4,
+.docs-content h5 + h5,
+.docs-content h5 + h6,
+.docs-content h6 + h1,
+.docs-content h6 + h2,
+.docs-content h6 + h3,
+.docs-content h6 + h4,
+.docs-content h6 + h5,
+.docs-content h6 + h6 {
+  margin-top: 0;
+}
+
+/* 水平線の直後の見出しは余白なし */
+.docs-content hr + h1,
+.docs-content hr + h2,
+.docs-content hr + h3,
+.docs-content hr + h4,
+.docs-content hr + h5,
+.docs-content hr + h6 {
+  margin-top: 0;
 }
 
 .docs-content h1 {
   font-size: 2.25rem;
-  margin-top: 2rem;
-}
-
-.docs-content h1:first-child {
-  margin-top: 0;
+  margin-bottom: 0.75rem;
 }
 
 .docs-content h2 {
   font-size: 1.75rem;
-  margin-top: 2.5rem;
 }
 
 .docs-content h3 {
   font-size: 1.5rem;
-  margin-top: 2rem;
 }
 
-.docs-content p,
+.docs-content h4 {
+  font-size: 1.25rem;
+}
+
+.docs-content h5 {
+  font-size: 1.125rem;
+}
+
+.docs-content h6 {
+  font-size: 1rem;
+}
+
+/* 見出しのハッシュ記号 */
+.docs-content .heading-hash {
+  color: var(--color-primary-400);
+  opacity: 0.6;
+  font-weight: 400;
+  margin-right: 0.5rem;
+  user-select: none;
+}
+
+/* 段落のスタイル */
+.docs-content p {
+  color: var(--muted-foreground);
+  margin-bottom: 0;
+  margin-top: 0;
+  line-height: 1.75;
+}
+
+/* 段落と段落の間のみ余白を追加 */
+.docs-content p + p {
+  margin-top: 1.25rem;
+}
+
+/* 段落と他のブロック要素の間の余白 */
+.docs-content p + ul,
+.docs-content p + ol,
+.docs-content p + pre,
+.docs-content p + blockquote,
+.docs-content p + table,
+.docs-content p + hr,
+.docs-content p + .directive {
+  margin-top: 1rem;
+}
+
+/* 段落の後の見出しは3rem（1.5行分）の余白 */
+.docs-content p + h1,
+.docs-content p + h2,
+.docs-content p + h3,
+.docs-content p + h4,
+.docs-content p + h5,
+.docs-content p + h6 {
+  margin-top: 3rem !important;
+}
+
+/* 数式ブロック（SVG）の余白 */
+.docs-content p + svg.typst-doc {
+  margin-top: 1rem;
+}
+
+.docs-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* リストのスタイル */
 .docs-content ul,
 .docs-content ol {
   color: var(--muted-foreground);
-  margin-bottom: 1rem;
+  margin-bottom: 0;
+  margin-top: 0;
   line-height: 1.7;
 }
 
-.docs-content p:last-child,
+/* リストの前後の余白 */
+.docs-content ul + p,
+.docs-content ol + p,
+.docs-content pre + p,
+.docs-content blockquote + p,
+.docs-content table + p,
+.docs-content hr + p,
+.docs-content .directive + p,
+.docs-content svg.typst-doc + p {
+  margin-top: 1rem;
+}
+
+/* 各要素の後の見出しは3rem（1.5行分）の余白 */
+.docs-content ul + h1,
+.docs-content ul + h2,
+.docs-content ul + h3,
+.docs-content ul + h4,
+.docs-content ul + h5,
+.docs-content ul + h6,
+.docs-content ol + h1,
+.docs-content ol + h2,
+.docs-content ol + h3,
+.docs-content ol + h4,
+.docs-content ol + h5,
+.docs-content ol + h6,
+.docs-content pre + h1,
+.docs-content pre + h2,
+.docs-content pre + h3,
+.docs-content pre + h4,
+.docs-content pre + h5,
+.docs-content pre + h6,
+.docs-content blockquote + h1,
+.docs-content blockquote + h2,
+.docs-content blockquote + h3,
+.docs-content blockquote + h4,
+.docs-content blockquote + h5,
+.docs-content blockquote + h6,
+.docs-content table + h1,
+.docs-content table + h2,
+.docs-content table + h3,
+.docs-content table + h4,
+.docs-content table + h5,
+.docs-content table + h6,
+.docs-content .directive + h1,
+.docs-content .directive + h2,
+.docs-content .directive + h3,
+.docs-content .directive + h4,
+.docs-content .directive + h5,
+.docs-content .directive + h6,
+.docs-content svg.typst-doc + h1,
+.docs-content svg.typst-doc + h2,
+.docs-content svg.typst-doc + h3,
+.docs-content svg.typst-doc + h4,
+.docs-content svg.typst-doc + h5,
+.docs-content svg.typst-doc + h6 {
+  margin-top: 3rem !important;
+}
+
 .docs-content ul:last-child,
 .docs-content ol:last-child {
   margin-bottom: 0;
@@ -94,41 +329,47 @@ body {
 }
 
 .docs-content a {
-  color: rgb(37 99 235);
+  color: var(--color-primary-600);
   text-decoration: underline;
   text-decoration-thickness: 2px;
-  text-decoration-color: rgba(37, 99, 235, 0.3);
+  text-decoration-color: var(--color-primary-300);
+  opacity: 0.9;
+}
+
+.docs-content a:hover {
+  opacity: 1;
 }
 
 .docs-content code {
   font-family: var(--font-geist-mono, ui-monospace);
-  background: rgba(15, 23, 42, 0.05);
+  background: var(--color-code-bg);
+  color: var(--color-primary-700);
   padding: 0.1rem 0.35rem;
   border-radius: 0.25rem;
   font-size: 0.95em;
 }
 
 .docs-content .directive {
-  border-left: 3px solid rgb(37 99 235);
-  background: rgba(37, 99, 235, 0.06);
+  border-left: 3px solid var(--color-primary-500);
+  background: var(--color-primary-50);
   padding: 1rem;
   border-radius: 0.5rem;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
 }
 
 .docs-content .directive-theorem {
-  border-left-color: rgb(16 185 129);
-  background: rgba(16, 185, 129, 0.08);
+  border-left-color: var(--color-accent-teal);
+  background: color-mix(in srgb, var(--color-accent-teal) 8%, transparent);
 }
 
 .docs-content .directive-proof {
-  border-left-color: rgb(168 85 247);
-  background: rgba(168, 85, 247, 0.06);
+  border-left-color: var(--color-accent-purple);
+  background: color-mix(in srgb, var(--color-accent-purple) 6%, transparent);
 }
 
 .docs-content .directive-column {
-  border-left-color: rgb(245 158 11);
-  background: rgba(245, 158, 11, 0.06);
+  border-left-color: var(--color-accent-amber);
+  background: color-mix(in srgb, var(--color-accent-amber) 6%, transparent);
 }
 
 /* Typst数式のスタイリング */
@@ -151,18 +392,18 @@ body {
 .docs-content > svg.typst-doc,
 .docs-content .typst-block {
   display: block;
-  margin: 1.5rem auto;
+  margin: 1rem 0;
   text-align: center;
 }
 
 /* コードブロック */
 .docs-content pre {
-  background: rgba(15, 23, 42, 0.05);
+  background: var(--color-code-bg);
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  margin: 1.5rem 0;
+  border: 1px solid var(--color-code-border);
+  margin: 1rem 0;
 }
 
 .docs-content pre code {
@@ -170,19 +411,25 @@ body {
   padding: 0;
   font-size: 0.9em;
   line-height: 1.5;
+  color: var(--foreground);
 }
 
 /* 引用ブロック */
 .docs-content blockquote {
-  border-left: 4px solid rgba(37, 99, 235, 0.4);
+  border-left: 4px solid var(--color-primary-400);
   padding-left: 1rem;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   color: var(--muted-foreground);
   font-style: italic;
 }
 
 .docs-content blockquote p {
-  margin-bottom: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.docs-content blockquote p + p {
+  margin-top: 0.5rem;
 }
 
 .docs-content blockquote p:last-child {
@@ -193,12 +440,12 @@ body {
 .docs-content table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   font-size: 0.95rem;
 }
 
 .docs-content thead {
-  border-bottom: 2px solid rgba(15, 23, 42, 0.2);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .docs-content th {
@@ -206,24 +453,24 @@ body {
   text-align: left;
   font-weight: 600;
   color: var(--foreground);
-  background: rgba(15, 23, 42, 0.03);
+  background: var(--muted-background);
 }
 
 .docs-content td {
   padding: 0.75rem;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  border-bottom: 1px solid var(--color-border-subtle);
   color: var(--muted-foreground);
 }
 
 .docs-content tbody tr:hover {
-  background: rgba(15, 23, 42, 0.02);
+  background: var(--muted-background);
 }
 
 /* 水平線 */
 .docs-content hr {
   border: none;
-  border-top: 1px solid rgba(15, 23, 42, 0.15);
-  margin: 2rem 0;
+  border-top: 1px solid var(--color-border-subtle);
+  margin: 1.5rem 0;
 }
 
 /* 画像 */
@@ -284,36 +531,4 @@ body {
 .docs-content li:has(input[type="checkbox"]) {
   list-style: none;
   margin-left: -1.5rem;
-}
-
-/* ダークモード対応 */
-@media (prefers-color-scheme: dark) {
-  .docs-content code {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .docs-content pre {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .docs-content th {
-    background: rgba(255, 255, 255, 0.03);
-  }
-
-  .docs-content td {
-    border-bottom-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .docs-content tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .docs-content hr {
-    border-top-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .docs-content blockquote {
-    border-left-color: rgba(96, 165, 250, 0.4);
-  }
 }
