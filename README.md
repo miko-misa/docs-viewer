@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Docs Viewer
 
-## Getting Started
+Next.js (App Router) でローカルの `docs/` ディレクトリにある Markdown を表示するビューワーです。Typst 記法の数式を [`@myriaddreamin/rehype-typst`](https://github.com/Myriad-Dreamin/typst.ts) でレンダリングし、Tailwind CSS ベースのレイアウトで表示します。
 
-First, run the development server:
+> 現在はローカル Markdown を対象にしており、GitHub API との連携は行っていません。
+
+### セットアップ
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで <http://localhost:3000> を開き、`docs/**/*.md` を編集すると即座に反映されます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 依存関係について
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Typst のレンダリングには `@myriaddreamin/typst-ts-node-compiler` を使用します。最初の起動時に WASM/バイナリのダウンロードが行われます。
+- Tailwind CSS v4 の `@theme` 記法を使用しています。エディタの LSP や ESLint で警告が出る場合は、対応したプラグインを導入してください。
 
-## Learn More
+### 開発メモ
 
-To learn more about Next.js, take a look at the following resources:
+- Markdown のルーティングは `src/app/[[...slug]]/page.tsx` のキャッチオールルートで処理しています。
+- `src/lib/markdown.tsx` にて unified パイプラインを構築し、Typst 数式のスタイルをサニタイズ後に復元しています。
+- 拡張 Markdown（定理・証明など）は `DirectiveWrapper`/`RefLink` 等のコンポーネントで段階的に実装中です。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### ライセンス
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+このリポジトリ内のコードは MIT ライセンスに準じます。
