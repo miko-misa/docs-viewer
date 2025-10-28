@@ -84,6 +84,29 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* テキスト選択のスタイル */
+::selection {
+  background: #475569; /* 青みがかった灰色 */
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background: #475569;
+  color: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::selection {
+    background: #64748b; /* ダークモードでは少し明るめ */
+    color: #ffffff;
+  }
+
+  ::-moz-selection {
+    background: #64748b;
+    color: #ffffff;
+  }
+}
+
 .docs-content {
   line-height: 1.75;
   font-size: 1rem;
@@ -189,11 +212,16 @@ body {
 
 /* 見出しのハッシュ記号 */
 .docs-content .heading-hash {
-  color: var(--color-primary-400);
-  opacity: 0.6;
+  color: #64748b; /* 青みがかった灰色 */
   font-weight: 400;
   margin-right: 0.5rem;
   user-select: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .docs-content .heading-hash {
+    color: #475569; /* ダークモードでは少し暗め */
+  }
 }
 
 /* 段落のスタイル */
@@ -324,6 +352,18 @@ body {
   list-style-type: decimal;
 }
 
+/* 数字付きリストの数字を灰色太字に */
+.docs-content ol > li::marker {
+  color: #64748b; /* 青みがかった灰色 */
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .docs-content ol > li::marker {
+    color: #94a3b8; /* ダークモードでは少し明るめ */
+  }
+}
+
 .docs-content li {
   margin-top: 0.5rem;
 }
@@ -416,11 +456,17 @@ body {
 
 /* 引用ブロック */
 .docs-content blockquote {
-  border-left: 4px solid var(--color-primary-400);
+  border-left: 4px solid #64748b; /* 青みがかった灰色 */
   padding-left: 1rem;
   margin: 1rem 0;
   color: var(--muted-foreground);
   font-style: italic;
+}
+
+@media (prefers-color-scheme: dark) {
+  .docs-content blockquote {
+    border-left-color: #475569; /* ダークモードでは少し暗め */
+  }
 }
 
 .docs-content blockquote p {
