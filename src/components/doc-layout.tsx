@@ -1,5 +1,9 @@
+import type { GroupConfig } from "@/lib/docs";
+
 type DocLayoutProps = {
   title: string;
+  tags?: string[];
+  groupConfig?: GroupConfig;
   updatedAt: Date;
   children: React.ReactNode;
 };
@@ -9,7 +13,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
   timeStyle: "short",
 });
 
-export function DocLayout({ title, updatedAt, children }: DocLayoutProps) {
+export function DocLayout({ title, tags, groupConfig, updatedAt, children }: DocLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header
@@ -20,18 +24,44 @@ export function DocLayout({ title, updatedAt, children }: DocLayoutProps) {
         }}
       >
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-          <p
-            className="text-xs font-semibold uppercase tracking-wide"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Docs Viewer
-          </p>
-          <h1 className="text-3xl font-semibold" style={{ color: "var(--foreground)" }}>
-            {title}
-          </h1>
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-            最終更新: {DATE_FORMATTER.format(updatedAt)}
-          </p>
+          {groupConfig ? (
+            <>
+              <p
+                className="text-xs font-semibold uppercase tracking-wide"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                {groupConfig.title}
+              </p>
+              <h1 className="text-3xl font-semibold" style={{ color: "var(--foreground)" }}>
+                {title}
+              </h1>
+            </>
+          ) : (
+            <h1 className="text-3xl font-semibold" style={{ color: "var(--foreground)" }}>
+              {title}
+            </h1>
+          )}
+          <div className="flex items-center gap-4">
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+              最終更新: {DATE_FORMATTER.format(updatedAt)}
+            </p>
+            {tags && tags.length > 0 && (
+              <div className="flex gap-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-md px-2 py-1 text-xs font-medium"
+                    style={{
+                      backgroundColor: "var(--muted-background)",
+                      color: "var(--muted-foreground)",
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

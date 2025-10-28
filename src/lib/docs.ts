@@ -1,5 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import matter from "gray-matter";
+import yaml from "js-yaml";
 
 export class DocNotFoundError extends Error {
   constructor(public readonly slug: string[]) {
@@ -8,11 +10,24 @@ export class DocNotFoundError extends Error {
   }
 }
 
+export type DocMetadata = {
+  title?: string;
+  tags?: string[];
+};
+
+export type GroupConfig = {
+  title?: string;
+  tags?: string[];
+};
+
 export type DocRecord = {
   slug: string[];
   content: string;
   filePath: string;
   title: string;
+  tags?: string[];
+  metadata: DocMetadata;
+  groupConfig?: GroupConfig;
   lastModified: Date;
 };
 
@@ -75,21 +90,61 @@ function titleFromSlug(slug: string[]): string {
   return last.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+async function loadGroupConfig(filePath: string): Promise<GroupConfig | undefined> {
+  // ファイルの親ディレクトリ（同じ階層）のみを確認
+  const fileDir = path.dirname(filePath);
+  const configPath = path.join(fileDir, "config.yaml");
+
+  try {
+    const configContent = await fs.readFile(configPath, "utf-8");
+    const config = yaml.load(configContent) as GroupConfig;
+    return config;
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err?.code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 export async function getDocBySlug(rawSlug: string[] | string | undefined): Promise<DocRecord> {
   const slug = normalizeSlug(rawSlug);
   const candidates = slugToCandidates(slug).map(assertInsideDocsRoot);
 
   for (const filePath of candidates) {
     try {
-      const content = await fs.readFile(filePath, "utf-8");
+      const rawContent = await fs.readFile(filePath, "utf-8");
       const stat = await fs.stat(filePath);
-      const title = extractTitle(content) ?? titleFromSlug(slug);
+
+      // フロントマターを解析
+      const { data: metadata, content } = matter(rawContent);
+
+      // グループ設定を読み込む（ファイルパスを使用）
+      const groupConfig = await loadGroupConfig(filePath);
+
+      // タイトルとタグの決定
+      let title: string;
+      let tags: string[] | undefined;
+
+      if (groupConfig) {
+        // グループ内の場合: mdのtitleはサブタイトルとして使用
+        title = (metadata.title as string) ?? extractTitle(content) ?? titleFromSlug(slug);
+        tags = groupConfig.tags; // グループのタグを使用
+      } else {
+        // 単体mdの場合: mdのtitleとtagsを使用
+        title = (metadata.title as string) ?? extractTitle(content) ?? titleFromSlug(slug);
+        tags = metadata.tags as string[] | undefined;
+      }
 
       return {
         slug,
         content,
         filePath,
         title,
+        tags,
+        metadata,
+        groupConfig,
         lastModified: stat.mtime,
       };
     } catch (error) {

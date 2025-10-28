@@ -43,7 +43,12 @@ export default async function DocPage(props: PageProps) {
   const rendered = await renderMarkdown(doc.content);
 
   return (
-    <DocLayout title={doc.title} updatedAt={doc.lastModified}>
+    <DocLayout
+      title={doc.title}
+      tags={doc.tags}
+      groupConfig={doc.groupConfig}
+      updatedAt={doc.lastModified}
+    >
       {rendered}
     </DocLayout>
   );
