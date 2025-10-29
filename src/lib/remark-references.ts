@@ -41,8 +41,8 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
             },
           };
         } else {
-          // ラベルが見つからない場合、警告を出力
-          console.warn(`Reference not found: ${labelId}`);
+          // ラベルが見つからない場合、警告は出さずそのまま（説明文の可能性があるため）
+          // 明示的な参照の場合はユーザーがリンク形式で書いているので気づける
         }
       }
     });
@@ -115,12 +115,11 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
               },
             } as Link);
           } else {
-            // ラベルが見つからない場合、元のテキストのまま
+            // ラベルが見つからない場合、元のテキストのまま（警告は出さない）
             newChildren.push({
               type: 'text',
               value: ref.match,
             });
-            console.warn(`Reference not found: ${ref.labelId}`);
           }
 
           lastEnd = ref.end;
