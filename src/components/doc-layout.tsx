@@ -1,6 +1,7 @@
 import type { GroupConfig } from "@/lib/docs";
 import type { TocItem } from "@/lib/toc";
 import { Toc } from "./Toc";
+import { PreviewModeMenu } from "./PreviewModeMenu";
 
 type DocLayoutProps = {
   title: string;
@@ -19,6 +20,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
 export function DocLayout({ title, tags, groupConfig, updatedAt, toc, children }: DocLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <PreviewModeMenu />
       <header
         className="border-b px-6 py-6 backdrop-blur"
         style={{
@@ -78,7 +80,7 @@ export function DocLayout({ title, tags, groupConfig, updatedAt, toc, children }
         >
           <Toc items={toc} />
         </aside>
-        <main className="flex-1">
+        <main className="flex-1" style={{ marginRight: 'clamp(2rem, 15vw, 300px)' }}>
           <article className="docs-content mx-auto w-full max-w-3xl">{children}</article>
         </main>
       </div>
