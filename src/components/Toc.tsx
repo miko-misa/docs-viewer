@@ -9,28 +9,29 @@ type TocProps = {
 
 export function Toc({ items }: TocProps) {
   const [activeId, setActiveId] = useState<string>("");
+  const tocRef = React.useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const allHeadings = Array.from(
-      document.querySelectorAll("h1[id], h2[id], h3[id]")
-    );
-
-    const headingElements = allHeadings.filter((heading) => {
-      let parent = heading.parentElement;
-      while (parent && parent !== document.body) {
-        if (
-          parent.tagName === "PRE" ||
-          parent.tagName === "CODE" ||
-          parent.tagName === "BLOCKQUOTE"
-        ) {
-          return false;
+    // 全てのTOC項目のIDを収集
+    const collectItemIds = (items: TocItem[]): string[] => {
+      let ids: string[] = [];
+      for (const item of items) {
+        ids.push(item.id);
+        if (item.children) {
+          ids = ids.concat(collectItemIds(item.children));
         }
-        parent = parent.parentElement;
       }
-      return true;
-    });
+      return ids;
+    };
 
-    if (headingElements.length === 0) return;
+    const itemIds = collectItemIds(items);
+
+    // IDを元に実際の要素を取得
+    const allElements = itemIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+
+    if (allElements.length === 0) return;
 
     const calculateActiveScore = (element: Element): number => {
       const rect = element.getBoundingClientRect();
@@ -49,7 +50,7 @@ export function Toc({ items }: TocProps) {
       const maxDistance = viewportHeight;
       const positionScore = Math.max(0, 1 - distance / maxDistance);
 
-      const sectionScore = calculateSectionVisibility(element, headingElements);
+      const sectionScore = calculateSectionVisibility(element, allElements);
 
       return intersectionScore * 0.3 + positionScore * 0.4 + sectionScore * 0.3;
     };
@@ -85,7 +86,7 @@ export function Toc({ items }: TocProps) {
       let activeElement: Element | null = null;
 
       if (window.scrollY < 100) {
-        setActiveId(headingElements[0]?.id || "");
+        setActiveId(allElements[0]?.id || "");
         return;
       }
 
@@ -93,11 +94,11 @@ export function Toc({ items }: TocProps) {
         window.innerHeight + window.scrollY >=
         document.documentElement.scrollHeight - 100;
       if (isAtBottom) {
-        setActiveId(headingElements[headingElements.length - 1]?.id || "");
+        setActiveId(allElements[allElements.length - 1]?.id || "");
         return;
       }
 
-      for (const element of headingElements) {
+      for (const element of allElements) {
         const score = calculateActiveScore(element);
         if (score > maxScore) {
           maxScore = score;
@@ -121,21 +122,57 @@ export function Toc({ items }: TocProps) {
       }
     );
 
-    headingElements.forEach((element) => observer.observe(element));
+    allElements.forEach((element) => observer.observe(element));
 
     updateActiveHeading();
 
     return () => {
-      headingElements.forEach((element) => observer.unobserve(element));
+      allElements.forEach((element) => observer.unobserve(element));
     };
   }, [items]);
+
+  // アクティブな項目が変わったらTOCをスクロール
+  useEffect(() => {
+    if (!activeId || !tocRef.current) return;
+
+    const activeLink = tocRef.current.querySelector(
+      `a[href="#${activeId}"]`
+    ) as HTMLElement;
+    
+    if (!activeLink) return;
+
+    const tocContainer = tocRef.current;
+    const containerRect = tocContainer.getBoundingClientRect();
+    const linkRect = activeLink.getBoundingClientRect();
+
+    // アクティブなリンクがコンテナ内に表示されているかチェック
+    const isVisible =
+      linkRect.top >= containerRect.top &&
+      linkRect.bottom <= containerRect.bottom;
+
+    if (!isVisible) {
+      // スムーズにスクロール（リンクをコンテナの中央付近に配置）
+      const scrollTop = tocContainer.scrollTop;
+      const linkOffsetTop = activeLink.offsetTop;
+      const containerHeight = tocContainer.clientHeight;
+      const linkHeight = activeLink.clientHeight;
+      
+      // リンクをコンテナの上から1/3の位置に配置
+      const targetScrollTop = linkOffsetTop - containerHeight / 3 + linkHeight / 2;
+
+      tocContainer.scrollTo({
+        top: targetScrollTop,
+        behavior: "smooth",
+      });
+    }
+  }, [activeId]);
 
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <nav className="toc" aria-label="目次">
+    <nav className="toc" aria-label="目次" ref={tocRef}>
       <h2 className="toc-title">目次</h2>
       <TocList items={items} activeId={activeId} />
     </nav>

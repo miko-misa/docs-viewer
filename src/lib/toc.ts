@@ -14,6 +14,7 @@ export function extractToc(markdown: string): TocItem[] {
   let inBlockquote = false;
   let inColumnDirective = false;
   let columnTitle = "";
+  let columnLabel = ""; // ラベルを格納
   let columnIncludeInToc = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -39,34 +40,67 @@ export function extractToc(markdown: string): TocItem[] {
       inColumnDirective = true;
       columnIncludeInToc = columnStartMatch[1] === "-toc";
       columnTitle = "";
+      columnLabel = ""; // リセット
       continue;
     }
 
     if (line.trim() === ":::") {
       if (inColumnDirective && columnIncludeInToc && columnTitle) {
-        const id = slug(columnTitle);
+        let id: string;
+        
+        if (columnLabel) {
+          // ラベルがある場合: ラベルをIDとして使用
+          id = columnLabel.replace(/:/g, '-'); // normalize
+        } else {
+          // ラベルがない場合: タイトルからslugを生成
+          id = slug(columnTitle);
+        }
+        
         headings.push({ id, text: columnTitle, level: 4 });
       }
       inColumnDirective = false;
       columnTitle = "";
+      columnLabel = ""; // リセット
       columnIncludeInToc = false;
       continue;
     }
 
-    if (inColumnDirective && line.trim().startsWith("@title:")) {
-      columnTitle = line.trim().substring(7).trim();
-      continue;
+    if (inColumnDirective) {
+      // ラベル行をチェック（独立した行として）
+      const labelOnlyMatch = line.trim().match(/^\(([a-z][a-z0-9-:]*)\)=\s*$/);
+      if (labelOnlyMatch) {
+        columnLabel = labelOnlyMatch[1];
+        continue;
+      }
+      
+      // @title: をチェック
+      if (line.trim().startsWith("@title:")) {
+        columnTitle = line.trim().substring(7).trim();
+        continue;
+      }
     }
 
     const match = line.match(/^(#{1,6})\s+(.+)$/);
     if (!match) continue;
 
     const level = match[1].length as 1 | 2 | 3 | 4 | 5 | 6;
-    const text = match[2].trim();
+    let text = match[2].trim();
+
+    // ラベル構文 (label)= があるかチェック
+    const labelMatch = text.match(/^\(([a-z][a-z0-9-:]*)\)=\s*/);
+    let id: string;
+    
+    if (labelMatch) {
+      // ラベルがある場合: ラベルをIDとして使用し、テキストからラベルを削除
+      const labelId = labelMatch[1];
+      id = labelId.replace(/:/g, '-'); // normalize
+      text = text.replace(/^\([a-z][a-z0-9-:]*\)=\s*/, '');
+    } else {
+      // ラベルがない場合: テキストからslugを生成
+      id = slug(text);
+    }
 
     if (level > 3) continue;
-
-    const id = slug(text);
 
     headings.push({ id, text, level });
   }
