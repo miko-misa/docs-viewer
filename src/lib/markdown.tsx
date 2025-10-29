@@ -31,6 +31,9 @@ import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { jsxDEV } from "react/jsx-dev-runtime";
 import type { Schema } from "hast-util-sanitize";
 import { slug } from "github-slugger";
+import { LabelIndex } from "./refs";
+import { remarkCollectLabels } from "./remark-labels";
+import { remarkResolveReferences } from "./remark-references";
 
 type DirectiveNode = Parent & {
   name?: string;
@@ -146,8 +149,17 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
         }
       }
 
+      // タイトルをdataに保存（remarkCollectLabelsが使用）
+      if (title) {
+        directive.data = directive.data || {};
+        directive.data.directiveTitle = title;
+      }
+
       if (isColumnToc && title) {
-        hProperties["id"] = slug(title);
+        // すでにremarkCollectLabelsでIDが設定されていない場合のみ、タイトルからslugを生成
+        if (!hProperties["id"]) {
+          hProperties["id"] = slug(title);
+        }
       }
     }
 
@@ -200,7 +212,7 @@ const sanitizeSchema: Schema = {
   ],
   attributes: {
     "*": ["className", "id"],
-    a: ["href", "ref", "target", "rel"],
+    a: ["href", "ref", "target", "rel", "data-ref", "data-ref-type", "data-ref-title"],
     div: [
       "data-name",
       "data-value",
@@ -258,6 +270,9 @@ const sanitizeSchema: Schema = {
 export async function renderMarkdown(markdown: string): Promise<ReactNode> {
   const isDev = process.env.NODE_ENV !== "production";
 
+  // ラベルインデックスを作成
+  const labelIndex = new LabelIndex();
+
   const file = await unified()
     .use(remarkParse)
     .use(remarkMath)
@@ -265,6 +280,8 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkBreaks)
     .use(remarkDirective)
     .use(remarkTransformDirectives)
+    .use(remarkCollectLabels, { labelIndex })
+    .use(remarkResolveReferences, { labelIndex })
     .use(remarkRehype, { allowDangerousHtml: false })
     .use(rehypeSlug)
     .use(rehypeTypst)
