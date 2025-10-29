@@ -380,6 +380,11 @@ body {
   opacity: 1;
 }
 
+/* 参照リンクは下線なし */
+.docs-content a.ref-link {
+  text-decoration: none !important;
+}
+
 .docs-content code {
   font-family: var(--font-geist-mono, ui-monospace);
   background: var(--color-code-bg);
@@ -761,28 +766,413 @@ body {
   }
 }
 
-/* 参照リンクのスタイル */
+/* ========================================
+   参照リンクとプレビューウィンドウ
+   ======================================== */
+
+/* 参照リンクのスタイル - 控えめな背景色ハイライト */
 .ref-link {
-  color: var(--color-primary-600);
+  color: inherit;
   text-decoration: none;
-  font-weight: 500;
-  border-bottom: 1px dashed var(--color-primary-400);
+  font-weight: 600;
+  background-color: rgba(59, 130, 246, 0.1);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .ref-link:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+/* 展開中の参照リンク - より強調 */
+.ref-link-active {
+  background-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
   color: var(--color-primary-700);
-  border-bottom-style: solid;
-  background-color: color-mix(in srgb, var(--color-primary-100) 50%, transparent);
 }
 
-.dark .ref-link {
-  color: var(--color-primary-400);
-  border-bottom-color: var(--color-primary-600);
+@media (prefers-color-scheme: dark) {
+  .ref-link {
+    background-color: rgba(59, 130, 246, 0.15);
+  }
+  
+  .ref-link:hover {
+    background-color: rgba(59, 130, 246, 0.25);
+  }
+  
+  .ref-link-active {
+    background-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+    color: var(--color-primary-400);
+  }
 }
 
-.dark .ref-link:hover {
-  color: var(--color-primary-300);
-  background-color: color-mix(in srgb, var(--color-primary-900) 30%, transparent);
+/* プレビューウィンドウ */
+.ref-preview-window {
+  margin: 1rem 0 1rem 1.5rem;
+  border: 2px solid var(--color-primary-500);
+  border-radius: 0.75rem;
+  background: var(--muted-background);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+              0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+  position: relative;
+}
+
+/* フローティング表示の窓スタイル */
+.ref-preview-floating {
+  margin: 0;
+  width: 650px;
+  max-width: calc(100vw - 40px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2),
+              0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.2s ease-out;
+  position: absolute;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* サイドパネル内の窓スタイル */
+#ref-preview-panel .ref-preview-window {
+  margin: 0 0 1rem 0;
+}
+
+#ref-preview-panel .ref-preview-window:first-child {
+  margin-top: 0;
+}
+
+/* 子窓のスタイル（より薄く、小さく） */
+.ref-preview-window-child {
+  border-color: var(--color-primary-400);
+  border-width: 1.5px;
+}
+
+/* 子窓のコンテンツエリア（高さを小さく） */
+.ref-preview-window-child .ref-preview-content-wrapper {
+  max-height: 350px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+  }
+}
+
+/* 浮動閉じるボタン - スクロール領域の上に重ねて配置 */
+.ref-preview-close-floating {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ref-preview-close-floating:hover {
+  background-color: var(--color-primary-600);
+  color: white;
+  transform: scale(1.1);
+}
+
+/* コンテンツエリア（スクロール可能） */
+.ref-preview-content-wrapper {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 1.5rem;
+  position: relative;
+}
+
+/* スクロールバーのカスタマイズ */
+.ref-preview-content-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ref-preview-content-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ref-preview-content-wrapper::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.ref-preview-content-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+.ref-preview-content-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.ref-preview-content {
+  color: var(--foreground);
+  line-height: 1.7;
+  font-size: 0.9375rem;
+}
+
+/* プレビュー内の要素スタイル */
+.ref-preview-content h1,
+.ref-preview-content h2,
+.ref-preview-content h3,
+.ref-preview-content h4,
+.ref-preview-content h5,
+.ref-preview-content h6 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.3;
+}
+
+.ref-preview-content h1:first-child,
+.ref-preview-content h2:first-child,
+.ref-preview-content h3:first-child,
+.ref-preview-content h4:first-child,
+.ref-preview-content h5:first-child,
+.ref-preview-content h6:first-child {
+  margin-top: 0;
+}
+
+.ref-preview-content h1 { font-size: 1.5rem; }
+.ref-preview-content h2 { font-size: 1.25rem; }
+.ref-preview-content h3 { font-size: 1.125rem; }
+.ref-preview-content h4 { font-size: 1rem; }
+.ref-preview-content h5 { font-size: 0.9375rem; }
+.ref-preview-content h6 { font-size: 0.875rem; }
+
+.ref-preview-content p {
+  margin-bottom: 0;
+  margin-top: 0;
+  color: var(--muted-foreground);
+}
+
+.ref-preview-content p + p {
+  margin-top: 0.875rem;
+}
+
+.ref-preview-content ul,
+.ref-preview-content ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  color: var(--muted-foreground);
+}
+
+.ref-preview-content li {
+  margin-top: 0.375rem;
+}
+
+.ref-preview-content code {
+  background-color: var(--color-code-bg);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-family: var(--font-geist-mono, ui-monospace);
+}
+
+.ref-preview-content pre {
+  background-color: var(--color-code-bg);
+  padding: 0.875rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  border: 1px solid var(--color-code-border);
+}
+
+.ref-preview-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.ref-preview-content .directive-column {
+  margin: 0.875rem 0;
+}
+
+.ref-preview-content blockquote {
+  border-left: 3px solid var(--color-border);
+  padding-left: 0.875rem;
+  margin: 0.75rem 0;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+.ref-preview-content a {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+/* アクションボタン */
+.ref-preview-actions {
+  padding: 0.875rem 1rem;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  background: color-mix(in srgb, var(--muted-background) 50%, transparent);
+}
+
+.ref-preview-jump {
+  padding: 0.5rem 1rem;
+  background-color: var(--color-primary-600);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ref-preview-jump:hover {
+  background-color: var(--color-primary-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  .ref-preview-jump {
+    background-color: var(--color-primary-500);
+  }
+  
+  .ref-preview-jump:hover {
+    background-color: var(--color-primary-400);
+  }
+}
+
+/* プレビューモードメニュー */
+.preview-mode-menu {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+}
+
+.preview-mode-toggle {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--foreground);
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.preview-mode-toggle:hover {
+  background: var(--muted-background);
+  border-color: var(--color-primary-500);
+}
+
+.preview-mode-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 240px;
+  background: var(--background);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+.preview-mode-header {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.preview-mode-notice {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  color: var(--color-accent-amber);
+  background: color-mix(in srgb, var(--color-accent-amber) 10%, transparent);
+  border-bottom: 1px solid var(--color-border-subtle);
+  line-height: 1.4;
+}
+
+.preview-mode-option {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.preview-mode-option:last-child {
+  border-bottom: none;
+}
+
+.preview-mode-option:hover:not(:disabled) {
+  background: var(--muted-background);
+}
+
+.preview-mode-option.active {
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+  border-left: 3px solid var(--color-primary-500);
+  padding-left: calc(1rem - 3px);
+}
+
+.preview-mode-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preview-mode-option:disabled .preview-mode-option-title,
+.preview-mode-option:disabled .preview-mode-option-desc {
+  color: var(--muted-foreground);
+}
+
+.preview-mode-option-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  margin-bottom: 0.25rem;
+}
+
+.preview-mode-option-desc {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
 }
 
