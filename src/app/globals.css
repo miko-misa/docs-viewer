@@ -616,6 +616,35 @@ body {
 .toc {
   position: sticky;
   top: 1.5rem;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+  
+  /* スムーズなスクロール */
+  scroll-behavior: smooth;
+  
+  /* カスタムスクロールバー（Webkit） */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+  
+  /* Firefox スクロールバー */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 .toc-title {
@@ -731,3 +760,29 @@ body {
     background-color: color-mix(in srgb, var(--color-primary-900) 15%, transparent);
   }
 }
+
+/* 参照リンクのスタイル */
+.ref-link {
+  color: var(--color-primary-600);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px dashed var(--color-primary-400);
+  transition: all 0.2s ease;
+}
+
+.ref-link:hover {
+  color: var(--color-primary-700);
+  border-bottom-style: solid;
+  background-color: color-mix(in srgb, var(--color-primary-100) 50%, transparent);
+}
+
+.dark .ref-link {
+  color: var(--color-primary-400);
+  border-bottom-color: var(--color-primary-600);
+}
+
+.dark .ref-link:hover {
+  color: var(--color-primary-300);
+  background-color: color-mix(in srgb, var(--color-primary-900) 30%, transparent);
+}
+
