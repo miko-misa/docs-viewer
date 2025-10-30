@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useMemo } from "react";
 
 type TypstSvgProps = React.SVGProps<SVGSVGElement> & {
@@ -11,7 +13,6 @@ export function TypstSvg({
   ...rest
 }: TypstSvgProps) {
   const parsedStyle = useMemo(() => parseStyle(dataTypstStyle), [dataTypstStyle]);
-
   const mergedStyle: React.CSSProperties | undefined = useMemo(() => {
     if (!style && !parsedStyle) {
       return undefined;
@@ -36,15 +37,11 @@ export function TypstSvg({
   // propsから分離するが、undefinedの場合はデフォルト値を設定しない
   const { fill, stroke, ...svgProps } = rest;
 
-  // fillとstrokeを条件付きで設定
-  const fillProp = fill !== undefined ? fill : undefined;
-  const strokeProp = stroke !== undefined ? stroke : undefined;
-
   return (
     <svg
       {...svgProps}
-      {...(fillProp !== undefined && { fill: fillProp })}
-      {...(strokeProp !== undefined && { stroke: strokeProp })}
+      {...(fill !== undefined && { fill })}
+      {...(stroke !== undefined && { stroke })}
       style={mergedStyle}
     >
       {children}

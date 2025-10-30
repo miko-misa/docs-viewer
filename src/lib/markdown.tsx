@@ -252,7 +252,7 @@ const sanitizeSchema: Schema = {
       "stroke-linejoin",
     ],
     g: ["data-tid", "transform", "fill", "class"],
-    use: ["href", "fill"],
+    use: ["href", "fill", "transform", "x", "y", "xlink:href"],
     style: ["type"],
     clipPath: ["id"],
   },
@@ -284,7 +284,12 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkResolveReferences, { labelIndex })
     .use(remarkRehype, { allowDangerousHtml: false })
     .use(rehypeSlug)
-    .use(rehypeTypst)
+    .use(rehypeTypst, {
+      // Typstのレンダリングオプション
+      renderOptions: {
+        format: "svg",
+      },
+    })
     .use(enforceInlineMathRendering)
     .use(preserveTypstStyles)
     .use(replaceCheckmarks)
