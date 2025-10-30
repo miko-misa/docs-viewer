@@ -215,19 +215,26 @@ type LabelIndex = Map<string, LabelInfo>;
   - 注釈本文は複数段落・ブロック要素を含められる。
   - 各注釈は `<article>` 相当のラッパを用意し、マーカーと同じ番号・ラベルを表示。
 - **Markdown 記法**:
-  - インラインマーカー: `[^note-id]`
-  - 定義: 文末などに `[ ^note-id ]: 注釈本文...`（標準 Markdown footnote 風）
-  - 定義本文はインデントした複数行を許可。ブロック要素（リスト、コード等）も記述可能。
+  - 注釈で囲みたい範囲を `:::annotation ... :::` で包む。
+  - 範囲内に記述したテキストが注釈本文になり、元位置にはマーカーが残る。
+  - 例:
+    ```md
+    直観的な説明は以下の注釈にまとめる。:::annotation
+    補足として、より詳細な背景や証明の概略をここに記述できる。
+    箇条書きやコードブロックなども利用可能。
+    :::
+    続きの本文。
+    ```
 - **実装方針**:
-  1. remark プラグイン（`remark-annotations`）で footnote 風シンタックスをパース。
+  1. remark プラグイン（`remark-annotations`）で `annotation` ディレクティブを検出。
      - 出現順に連番を付与 (`annotationIndex` + `displayNumber`)。
      - ラベルインデックスに `type: "annotation"` を追加保存（タイトル/本文の冒頭をサマリとして保持）。
-  2. マーカーは `RefLink` と同じデータ属性（`data-ref="annotation-<id>"` など）を付与した `<sup>` マークで出力。
-  3. 注釈本文は HAST ツリー末尾に `AnnotationList` ノードを追加。レンダリング段階で専用コンポーネント（`AnnotationList`）が最終出力を担う。
+  2. マーカーは `RefLink` と同じデータ属性（`data-ref="annotation-<n>"` など）を付与したアンカーで出力し、CSS で上付き表示にする。
+  3. 注釈本文は HAST ツリー末尾に `AnnotationList` ノードを追加し、レンダリング段階で一覧化する。
   4. `RefLink` で `annotation` タイプに対応し、ポップアップ内で注釈本文全文を表示。
   5. スクロールフォーカス: 注釈ポップアップから「本文へジャンプ」操作で該当注釈本文へスクロール。
 - **スタイル**:
-  - マーカー: `sup.annotation-marker`（フォントサイズ 0.8em、カラーは muted）。
+  - マーカー: `.annotation-marker`（フォントサイズ 0.8em、カラーは muted、上付き表示）。
   - 下部注釈リスト: `section.annotations` 内で番号付きリスト表示、各項目にマーカーと同じ番号。
   - ポップアップ: 既存 `RefLink` レイアウトを使用し、注釈が長い場合はスクロール可。
 
