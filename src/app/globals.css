@@ -499,6 +499,65 @@ body {
   margin-bottom: 0;
 }
 
+.docs-content .directive-column-inner,
+.ref-preview-content .directive-column-inner {
+  position: relative;
+}
+
+.docs-content .directive-column-content.is-collapsed {
+  overflow: hidden;
+}
+
+.docs-content .directive-column-fade {
+  pointer-events: none;
+  position: absolute;
+  inset: auto 0 0;
+  height: 4.5rem;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--background) 0%, transparent) 0%,
+    color-mix(in srgb, var(--background) 85%, transparent) 75%
+  );
+}
+
+.docs-content .directive-column-toggle,
+.ref-preview-content .directive-column-toggle {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary-600);
+  background-color: color-mix(in srgb, var(--color-primary-50) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary-200) 50%, transparent);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.docs-content .directive-column-toggle:hover,
+.docs-content .directive-column-toggle:focus-visible,
+.ref-preview-content .directive-column-toggle:hover,
+.ref-preview-content .directive-column-toggle:focus-visible {
+  background-color: color-mix(in srgb, var(--color-primary-100) 55%, transparent);
+  color: var(--color-primary-700);
+  border-color: color-mix(in srgb, var(--color-primary-300) 60%, transparent);
+}
+
+.docs-content .directive-column-toggle:focus-visible,
+.ref-preview-content .directive-column-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-200) 45%, transparent);
+}
+
 /* Typst数式のスタイリング */
 .docs-content svg.typst-doc {
   max-width: 100%;
@@ -1165,6 +1224,13 @@ svg.typst-block {
 .ref-preview-content pre code {
   background: none;
   padding: 0;
+}
+
+.ref-preview-loading {
+  padding: 1rem;
+  font-size: 0.95rem;
+  color: var(--muted-foreground);
+  text-align: center;
 }
 
 .ref-preview-content .directive-column {
