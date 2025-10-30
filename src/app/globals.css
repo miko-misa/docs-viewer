@@ -157,6 +157,8 @@ body {
 .docs-content {
   line-height: 1.75;
   font-size: 1rem;
+  /* 小窓の絶対位置指定をこの要素基準にする */
+  position: relative;
 }
 
 .docs-content h1,
@@ -562,7 +564,7 @@ body {
 .docs-content a.annotation-marker:visited {
   font-size: 0.75em;
   vertical-align: super;
-  margin-left: 0.15em;
+  margin: 0 0.2em;
   text-decoration: none;
   color: var(--muted-foreground);
 }
@@ -582,6 +584,11 @@ body {
 
 .docs-content .annotation-list .annotation-entry {
   margin-bottom: 1rem;
+}
+
+.ref-preview-window .annotation-entry {
+  list-style: none;
+  padding-left: 0;
 }
 
 /* Typst数式のスタイリング */
@@ -1055,6 +1062,7 @@ svg.typst-block {
     0 8px 10px -6px rgba(0, 0, 0, 0.1);
   animation: fadeIn 0.2s ease-out;
   position: absolute;
+  transform: translateX(-16px) !important;
 }
 
 @keyframes fadeIn {
