@@ -14,12 +14,6 @@ importers:
       '@myriaddreamin/typst-ts-node-compiler':
         specifier: 0.6.1-rc3
         version: 0.6.1-rc3
-      '@myriaddreamin/typst-ts-node-compiler-linux-x64-gnu':
-        specifier: 0.6.1-rc3
-        version: 0.6.1-rc3
-      '@myriaddreamin/typst-ts-node-compiler-linux-x64-musl':
-        specifier: 0.6.1-rc3
-        version: 0.6.1-rc3
       '@myriaddreamin/typst.ts':
         specifier: 0.6.1-rc4
         version: 0.6.1-rc4(@myriaddreamin/typst-ts-renderer@0.6.1-rc4)(@myriaddreamin/typst-ts-web-compiler@0.6.1-rc4)
@@ -3802,9 +3796,11 @@ snapshots:
   '@myriaddreamin/typst-ts-node-compiler-linux-arm64-musl@0.6.1-rc3':
     optional: true
 
-  '@myriaddreamin/typst-ts-node-compiler-linux-x64-gnu@0.6.1-rc3': {}
+  '@myriaddreamin/typst-ts-node-compiler-linux-x64-gnu@0.6.1-rc3':
+    optional: true
 
-  '@myriaddreamin/typst-ts-node-compiler-linux-x64-musl@0.6.1-rc3': {}
+  '@myriaddreamin/typst-ts-node-compiler-linux-x64-musl@0.6.1-rc3':
+    optional: true
 
   '@myriaddreamin/typst-ts-node-compiler-win32-arm64-msvc@0.6.1-rc3':
     optional: true

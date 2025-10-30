@@ -14,8 +14,6 @@
   "dependencies": {
     "@myriaddreamin/rehype-typst": "0.6.1-rc3",
     "@myriaddreamin/typst-ts-node-compiler": "0.6.1-rc3",
-    "@myriaddreamin/typst-ts-node-compiler-linux-x64-gnu": "0.6.1-rc3",
-    "@myriaddreamin/typst-ts-node-compiler-linux-x64-musl": "0.6.1-rc3",
     "@myriaddreamin/typst.ts": "0.6.1-rc4",
     "@types/mdast": "^4.0.4",
     "github-slugger": "^2.0.0",
