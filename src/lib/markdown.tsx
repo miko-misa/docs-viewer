@@ -5,7 +5,6 @@ import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import remarkDirective from "remark-directive";
-import remarkFootnotes from "remark-footnotes";
 import remarkRehype from "remark-rehype";
 import rehypeSlug from "rehype-slug";
 import rehypeTypst from "@myriaddreamin/rehype-typst";
@@ -281,7 +280,6 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkGfm)
     .use(remarkBreaks)
     .use(remarkDirective)
-    .use(remarkFootnotes, { inlineNotes: false, footnoteLabel: "注釈" })
     .use(remarkTransformDirectives)
     .use(remarkCollectLabels, { labelIndex })
     .use(remarkResolveReferences, { labelIndex })
