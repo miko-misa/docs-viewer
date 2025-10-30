@@ -33,12 +33,42 @@ function resolvePreviewSource(element: HTMLElement | null): HTMLElement | null {
       ? element
       : element.closest<HTMLElement>(".annotation-entry");
   }
+  // If the target is a heading, clone the whole section (heading + following nodes
+  // until the next heading of same-or-higher level) so the preview shows the
+  // full section instead of only the heading element.
+  const tag = element.tagName?.toLowerCase();
+  if (tag && /^h[1-6]$/.test(tag)) {
+    const level = parseInt(tag[1], 10);
+    const doc = element.ownerDocument ?? document;
+    const wrapper = doc.createElement("div");
+    wrapper.className = "ref-preview-section";
+
+    // include the heading itself
+    wrapper.appendChild(element.cloneNode(true));
+
+    // append following siblings until next heading with level <= current
+    let sib = element.nextElementSibling as Element | null;
+    while (sib) {
+      const sibTag = sib.tagName?.toLowerCase();
+      if (sibTag && /^h[1-6]$/.test(sibTag)) {
+        const sibLevel = parseInt(sibTag[1], 10);
+        if (sibLevel <= level) break;
+      }
+      wrapper.appendChild(sib.cloneNode(true));
+      sib = sib.nextElementSibling;
+    }
+
+    return wrapper;
+  }
   const column = element.closest<HTMLElement>(".directive-column");
   if (column) {
     return column;
   }
   const docsContent = element.closest<HTMLElement>(".docs-content");
-  return docsContent ?? element;
+  // Prefer returning the element itself rather than the whole docs-content to
+  // avoid cloning the entire document. This keeps preview cloning scope small
+  // and reduces UI thread blocking.
+  return element;
 }
 
 function scrubClone(node: HTMLElement): HTMLElement {
@@ -113,24 +143,51 @@ function renderPreviewContent(
     parentDepth: number,
   ) => void,
 ) {
-  const html = buildPreviewHtml(targetElement, targetId);
-  container.innerHTML = html;
+  // Insert loading immediately, then perform heavy HTML build in idle time so
+  // the popup UI appears quickly and the main thread isn't blocked.
+  try {
+    // remove any previous delegated handler
+    const prev = (container as any).__refPreviewHandler as EventListener | undefined;
+    if (prev) {
+      container.removeEventListener("click", prev);
+      delete (container as any).__refPreviewHandler;
+    }
+  } catch (e) {
+    /* ignore */
+  }
 
-  container.querySelectorAll<HTMLAnchorElement>("a.ref-link").forEach((anchor) => {
-    const href = anchor.getAttribute("href");
-    if (!href || !href.startsWith("#")) return;
-    const childTargetId = href.slice(1);
+  const doBuild = () => {
+    // build HTML (may be expensive)
+    const html = buildPreviewHtml(targetElement, targetId);
+    container.innerHTML = html;
 
-    anchor.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
+    // event delegation for links inside preview (cheaper than per-anchor handlers)
+    const handler: EventListener = (ev) => {
+      const target = ev.target as HTMLElement | null;
+      if (!target) return;
+      const a = target.closest("a.ref-link") as HTMLAnchorElement | null;
+      if (!a) return;
+      const href = a.getAttribute("href");
+      if (!href || !href.startsWith("#")) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const childTargetId = href.slice(1);
       const childId = `window-${windowIdCounter++}`;
-      onOpenChild(childId, childTargetId, anchor, depth);
-    });
-  });
+      onOpenChild(childId, childTargetId, a, depth);
+    };
 
-  attachColumnToggleHandlers(container);
+    container.addEventListener("click", handler);
+    (container as any).__refPreviewHandler = handler;
+
+    attachColumnToggleHandlers(container);
+  };
+
+  if (typeof window !== "undefined" && (window as any).requestIdleCallback) {
+    (window as any).requestIdleCallback(doBuild, { timeout: 250 });
+  } else {
+    // fallback to next tick
+    setTimeout(doBuild, 0);
+  }
 }
 
 function attachColumnToggleHandlers(container: HTMLElement) {
@@ -513,6 +570,15 @@ const ChildRefWindow: React.FC<{
       if (rafScroll2 !== null && typeof window !== "undefined") {
         window.cancelAnimationFrame(rafScroll2);
       }
+      try {
+        const h = (container as any).__refPreviewHandler as EventListener | undefined;
+        if (h) {
+          container.removeEventListener("click", h);
+          delete (container as any).__refPreviewHandler;
+        }
+      } catch (e) {
+        /* ignore */
+      }
       container.innerHTML = "";
     };
   }, [targetId, depth, onOpenChild, updateFloatingPosition]);
@@ -759,6 +825,15 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
       }
       if (rafScroll2 !== null && typeof window !== "undefined") {
         window.cancelAnimationFrame(rafScroll2);
+      }
+      try {
+        const h = (container as any).__refPreviewHandler as EventListener | undefined;
+        if (h) {
+          container.removeEventListener("click", h);
+          delete (container as any).__refPreviewHandler;
+        }
+      } catch (e) {
+        /* ignore */
       }
       container.innerHTML = "";
     };
