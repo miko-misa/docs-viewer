@@ -13,7 +13,8 @@ type WindowData = {
   id: string;
   targetId: string;
   depth: number;
-  initialPosition?: { top: number; left: number };
+  linkElement: HTMLElement;
+  initialPosition?: { top: number; left: number; maxWidth?: number };
 };
 
 let windowIdCounter = 0;
@@ -21,10 +22,17 @@ let windowIdCounter = 0;
 const PREVIEW_CACHE = new Map<string, string>();
 const LOADING_TEMPLATE = '<div class="ref-preview-loading">読み込み中…</div>';
 const COLUMN_COLLAPSED_MAX_VH = 50;
+const POPUP_WIDTH = 650;
+const FLOATING_MARGIN = 12;
 let previewSourceIdCounter = 0;
 
 function resolvePreviewSource(element: HTMLElement | null): HTMLElement | null {
   if (!element) return null;
+  if (element.classList.contains("annotation-entry") || element.closest(".annotation-entry")) {
+    return element.classList.contains("annotation-entry")
+      ? element
+      : element.closest<HTMLElement>(".annotation-entry");
+  }
   const column = element.closest<HTMLElement>(".directive-column");
   if (column) {
     return column;
@@ -195,11 +203,175 @@ function attachColumnToggleHandlers(container: HTMLElement) {
   });
 }
 
+type FloatingPositionOptions = {
+  anchor: HTMLElement;
+  windowEl: HTMLElement | null;
+  exclude?: HTMLElement | null;
+};
+
+function calculateFloatingPosition(options: FloatingPositionOptions): {
+  top: number;
+  left: number;
+  maxWidth?: number;
+} {
+  const { anchor, windowEl, exclude } = options;
+  const docsContent = anchor.closest<HTMLElement>(".docs-content");
+  const anchorRect = anchor.getBoundingClientRect();
+  const windowHeight = windowEl?.getBoundingClientRect().height ?? 360;
+  // マージン設定（ドキュメントとの隙間、ビューポート端との隙間）
+  const DOC_GAP = 12; // ドキュメントとの隙間（px）
+  const VIEWPORT_MARGIN = 16; // ビューポート端との隙間（px）
+
+  if (docsContent) {
+    const docRect = docsContent.getBoundingClientRect();
+    const docWidth = docsContent.offsetWidth;
+
+    // ドキュメントの右端に小窓の左端を合わせ、その右側に DOC_GAP の余白を入れる
+    //（ドキュメントの右外に少しスペースを置いて表示）
+    let left = docWidth + DOC_GAP;
+
+    const baseTop = anchorRect.top - docRect.top;
+    let candidateTop = Math.max(0, baseTop);
+
+    const existingWindows = Array.from(
+      docsContent.querySelectorAll<HTMLElement>(".ref-preview-window.ref-preview-floating"),
+    ).filter((el) => el !== exclude);
+
+    const resolveTop = (el: HTMLElement) => {
+      const styleTop = Number.parseFloat(el.style.top || "");
+      if (!Number.isNaN(styleTop)) return styleTop;
+      const rect = el.getBoundingClientRect();
+      return rect.top - docRect.top;
+    };
+
+    const overlaps = (top: number, height: number, win: HTMLElement) => {
+      const otherTop = resolveTop(win);
+      const otherHeight = win.getBoundingClientRect().height;
+      return (
+        top < otherTop + otherHeight + FLOATING_MARGIN && top + height + FLOATING_MARGIN > otherTop
+      );
+    };
+
+    let iterations = 0;
+
+    // desiredGlobalLeft は popup の左位置（ビューポート原点基準）
+    const desiredGlobalLeft = docRect.left + left;
+
+    // ポップアップの実際の幅を参照（DOM が与えられていればそれを優先）
+    const popupWidth = windowEl?.getBoundingClientRect().width ?? POPUP_WIDTH;
+
+    // ビューポート内に左右それぞれ VIEWPORT_MARGIN を保つための利用可能幅
+    const availableWidth = window.innerWidth - VIEWPORT_MARGIN * 2;
+
+    // ポップアップが利用可能幅より大きければ、幅を availableWidth に縮めて
+    // 左端を VIEWPORT_MARGIN にする（右端に余白が出来る）
+    if (popupWidth > availableWidth) {
+      const maxWidth = Math.max(0, availableWidth);
+      const adjustedGlobalLeft = VIEWPORT_MARGIN;
+      left = adjustedGlobalLeft - docRect.left;
+
+      // 重なり回避ロジック（幅縮小しても高さの衝突は避ける）
+      while (
+        existingWindows.some((win) => overlaps(candidateTop, windowHeight, win)) &&
+        iterations < 100
+      ) {
+        const blockingBottom = existingWindows
+          .filter((win) => overlaps(candidateTop, windowHeight, win))
+          .map((win) => resolveTop(win) + win.getBoundingClientRect().height + FLOATING_MARGIN);
+        if (blockingBottom.length === 0) break;
+        candidateTop = Math.max(candidateTop, Math.min(...blockingBottom));
+        iterations++;
+      }
+
+      const maxTop = Math.max(0, docsContent.scrollHeight - windowHeight - 20);
+      candidateTop = Math.min(candidateTop, maxTop);
+
+      return { top: candidateTop, left, maxWidth };
+    }
+
+    // 画面右端に収めるための最大 global left を計算（ポップアップ幅を使用）
+    const computedMaxGlobalLeft = window.innerWidth - VIEWPORT_MARGIN - popupWidth;
+    const maxGlobalLeft = Math.max(VIEWPORT_MARGIN, computedMaxGlobalLeft);
+    const minGlobalLeft = VIEWPORT_MARGIN;
+
+    // desiredGlobalLeft を [minGlobalLeft, maxGlobalLeft] の範囲にクランプ
+    let adjustedGlobalLeft = Math.min(Math.max(desiredGlobalLeft, minGlobalLeft), maxGlobalLeft);
+
+    left = adjustedGlobalLeft - docRect.left;
+
+    while (
+      existingWindows.some((win) => overlaps(candidateTop, windowHeight, win)) &&
+      iterations < 100
+    ) {
+      const blockingBottom = existingWindows
+        .filter((win) => overlaps(candidateTop, windowHeight, win))
+        .map((win) => resolveTop(win) + win.getBoundingClientRect().height + FLOATING_MARGIN);
+      if (blockingBottom.length === 0) break;
+      candidateTop = Math.max(candidateTop, Math.min(...blockingBottom));
+      iterations++;
+    }
+
+    const maxTop = Math.max(0, docsContent.scrollHeight - windowHeight - 20);
+    candidateTop = Math.min(candidateTop, maxTop);
+
+    return { top: candidateTop, left };
+  }
+
+  // Fallback: position relative to viewport
+  const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  let left = anchorRect.right + 20;
+  left = Math.min(left, window.innerWidth - 20 - POPUP_WIDTH);
+  left = Math.max(20, left);
+
+  const minTop = scrollY + 40;
+  let candidateTop = Math.max(minTop, anchorRect.top + scrollY - 20);
+
+  const existingWindows = Array.from(
+    document.querySelectorAll<HTMLElement>(".ref-preview-window.ref-preview-floating"),
+  ).filter((el) => el !== exclude);
+
+  const resolveTop = (el: HTMLElement) => {
+    const styleTop = Number.parseFloat(el.style.top || "");
+    if (!Number.isNaN(styleTop)) return styleTop;
+    const rect = el.getBoundingClientRect();
+    return rect.top + (window.pageYOffset || document.documentElement.scrollTop || 0);
+  };
+
+  const overlaps = (top: number, height: number, win: HTMLElement) => {
+    const otherTop = resolveTop(win);
+    const otherHeight = win.getBoundingClientRect().height;
+    return (
+      top < otherTop + otherHeight + FLOATING_MARGIN && top + height + FLOATING_MARGIN > otherTop
+    );
+  };
+
+  let iterations = 0;
+  while (
+    existingWindows.some((win) => overlaps(candidateTop, windowHeight, win)) &&
+    iterations < 100
+  ) {
+    const blockingBottom = existingWindows
+      .filter((win) => overlaps(candidateTop, windowHeight, win))
+      .map((win) => resolveTop(win) + win.getBoundingClientRect().height + FLOATING_MARGIN);
+    if (blockingBottom.length === 0) break;
+    candidateTop = Math.max(candidateTop, Math.min(...blockingBottom));
+    iterations++;
+  }
+
+  const maxTop = scrollY + window.innerHeight - windowHeight - 20;
+  if (candidateTop > maxTop) {
+    candidateTop = Math.max(minTop, maxTop);
+  }
+
+  return { top: candidateTop, left };
+}
+
 // 子窓コンポーネント
 const ChildRefWindow: React.FC<{
   windowId: string;
   targetId: string;
   depth: number;
+  linkElement: HTMLElement;
   initialPosition?: { top: number; left: number };
   useFloating: boolean;
   onClose: () => void;
@@ -209,11 +381,40 @@ const ChildRefWindow: React.FC<{
     linkEl: HTMLElement,
     parentDepth: number,
   ) => void;
-}> = ({ windowId, targetId, depth, initialPosition, useFloating, onClose, onOpenChild }) => {
+}> = ({
+  windowId,
+  targetId,
+  depth,
+  linkElement,
+  initialPosition,
+  useFloating,
+  onClose,
+  onOpenChild,
+}) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
-  const [windowPosition] = useState(initialPosition || { top: 0, left: 0 });
+  const [windowPosition, setWindowPosition] = useState<{
+    top: number;
+    left: number;
+    maxWidth?: number;
+  }>(initialPosition || { top: 0, left: 0 });
+  const updateFloatingPosition = useCallback(() => {
+    if (!useFloating) return;
+    const position = calculateFloatingPosition({
+      anchor: linkElement,
+      windowEl: windowRef.current,
+      exclude: windowRef.current,
+    });
+    setWindowPosition({ top: position.top, left: position.left, maxWidth: position.maxWidth });
+    if (windowRef.current) {
+      if (position.maxWidth !== undefined) {
+        windowRef.current.style.maxWidth = `${position.maxWidth}px`;
+      } else {
+        windowRef.current.style.removeProperty("max-width");
+      }
+    }
+  }, [useFloating, linkElement]);
 
   const handleJump = () => {
     const element = document.getElementById(targetId);
@@ -224,6 +425,15 @@ const ChildRefWindow: React.FC<{
   const handleClose = () => {
     onClose();
   };
+
+  useEffect(() => {
+    if (!useFloating) return;
+    updateFloatingPosition();
+    window.addEventListener("resize", updateFloatingPosition);
+    return () => {
+      window.removeEventListener("resize", updateFloatingPosition);
+    };
+  }, [useFloating, updateFloatingPosition]);
 
   // DOM要素をクローンして挿入
   useEffect(() => {
@@ -237,7 +447,7 @@ const ChildRefWindow: React.FC<{
 
     container.innerHTML = LOADING_TEMPLATE;
     let cancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let timeoutId: number | null = null;
     let raf1: number | null = null;
     let raf2: number | null = null;
     let rafScroll1: number | null = null;
@@ -266,6 +476,7 @@ const ChildRefWindow: React.FC<{
     const runRender = () => {
       if (cancelled) return;
       renderPreviewContent(container, resolvedElement, targetId, depth, onOpenChild);
+      updateFloatingPosition();
       scheduleScroll();
     };
 
@@ -304,7 +515,7 @@ const ChildRefWindow: React.FC<{
       }
       container.innerHTML = "";
     };
-  }, [targetId, depth, onOpenChild]);
+  }, [targetId, depth, onOpenChild, updateFloatingPosition]);
 
   return (
     <div
@@ -317,6 +528,7 @@ const ChildRefWindow: React.FC<{
               top: `${windowPosition.top}px`,
               left: `${windowPosition.left}px`,
               zIndex: 1000 + depth,
+              maxWidth: windowPosition.maxWidth ? `${windowPosition.maxWidth}px` : undefined,
             }
           : undefined
       }
@@ -350,14 +562,33 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [previewElement, setPreviewElement] = useState<HTMLElement | null>(null);
   const [childWindows, setChildWindows] = useState<WindowData[]>([]);
-  const [windowPosition, setWindowPosition] = useState({ top: 0, left: 0 });
+  const [windowPosition, setWindowPosition] = useState<{
+    top: number;
+    left: number;
+    maxWidth?: number;
+  }>({ top: 0, left: 0 });
   const [useFloating, setUseFloating] = useState(false);
   const linkRef = useRef<HTMLAnchorElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const windowIdRef = useRef<string>(`window-${windowIdCounter++}`);
-  const fixedPositionRef = useRef<{ top: number; left: number } | null>(null);
+  const updateFloatingPosition = useCallback(() => {
+    if (!useFloating || !isExpanded || !linkRef.current) return;
+    const position = calculateFloatingPosition({
+      anchor: linkRef.current,
+      windowEl: windowRef.current,
+      exclude: windowRef.current,
+    });
+    setWindowPosition({ top: position.top, left: position.left, maxWidth: position.maxWidth });
+    if (windowRef.current) {
+      if (position.maxWidth !== undefined) {
+        windowRef.current.style.maxWidth = `${position.maxWidth}px`;
+      } else {
+        windowRef.current.style.removeProperty("max-width");
+      }
+    }
+  }, [useFloating, isExpanded]);
 
   // 画面幅とプレビューモードを監視してフローティング表示の有無を決定
   useEffect(() => {
@@ -371,76 +602,16 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
     return () => window.removeEventListener("resize", checkLayout);
   }, [previewMode]);
 
-  // フローティング表示時の位置を計算（初回のみ）
   useEffect(() => {
-    if (!useFloating || !isExpanded || !linkRef.current) {
-      fixedPositionRef.current = null;
-      return;
-    }
+    if (!useFloating || !isExpanded) return;
 
-    // 既に位置が計算済みの場合は再利用
-    if (fixedPositionRef.current) {
-      setWindowPosition(fixedPositionRef.current);
-      return;
-    }
+    updateFloatingPosition();
 
-    const docsContent = linkRef.current.closest(".docs-content");
-    if (!docsContent) return;
-
-    const docsRect = docsContent.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-    const windowWidth = 650;
-    let leftPosition = docsRect.right + 20;
-
-    if (leftPosition + windowWidth > window.innerWidth - 20) {
-      leftPosition = Math.max(20, window.innerWidth - windowWidth - 20);
-    }
-
-    // 既存の全ての窓の最下部を見つける
-    let topPosition = scrollTop + 100;
-    let maxBottom = topPosition;
-
-    // 親窓をチェック
-    const allParentWindows = document.querySelectorAll(
-      ".ref-preview-window:not(.ref-preview-window-child)",
-    );
-    allParentWindows.forEach((win) => {
-      const windowElement = win as HTMLElement;
-      const windowTop = parseInt(windowElement.style.top || "0");
-      const windowRect = win.getBoundingClientRect();
-      const windowBottom = windowTop + windowRect.height;
-
-      if (windowBottom > maxBottom) {
-        maxBottom = windowBottom;
-      }
-    });
-
-    // 子窓をチェック
-    const allChildWindows = document.querySelectorAll(".ref-preview-window-child");
-    allChildWindows.forEach((win) => {
-      const windowElement = win as HTMLElement;
-      const windowTop = parseInt(windowElement.style.top || "0");
-      const windowRect = win.getBoundingClientRect();
-      const windowBottom = windowTop + windowRect.height;
-
-      if (windowBottom > maxBottom) {
-        maxBottom = windowBottom;
-      }
-    });
-
-    if (maxBottom > topPosition) {
-      topPosition = maxBottom + 20;
-    }
-
-    const finalPosition = {
-      top: topPosition,
-      left: leftPosition,
+    window.addEventListener("resize", updateFloatingPosition);
+    return () => {
+      window.removeEventListener("resize", updateFloatingPosition);
     };
-
-    fixedPositionRef.current = finalPosition;
-    setWindowPosition(finalPosition);
-  }, [useFloating, isExpanded]);
+  }, [useFloating, isExpanded, updateFloatingPosition]);
 
   const targetId = props.href?.replace("#", "");
 
@@ -463,71 +634,37 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
 
   const openChildWindow = useCallback(
     (childId: string, childTargetId: string, linkEl: HTMLElement, parentDepth: number) => {
-      const docsContent =
-        linkEl.closest(".docs-content") ?? document.querySelector(".docs-content");
-      if (!docsContent) return;
+      const initialPosition = useFloating
+        ? calculateFloatingPosition({ anchor: linkEl, windowEl: null, exclude: null })
+        : { top: 0, left: 0 };
 
-      const docsRect = docsContent.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setChildWindows((prev) => [
+        ...prev,
+        {
+          id: childId,
+          targetId: childTargetId,
+          depth: parentDepth + 1,
+          linkElement: linkEl,
+          initialPosition,
+        },
+      ]);
 
-      const windowWidth = 650;
-      let leftPosition = docsRect.right + 20;
-
-      if (leftPosition + windowWidth > window.innerWidth - 20) {
-        leftPosition = Math.max(20, window.innerWidth - windowWidth - 20);
+      if (useFloating) {
+        requestAnimationFrame(() => updateFloatingPosition());
       }
-
-      // 親窓と既存の子窓の最下部を見つけて配置
-      setChildWindows((prev) => {
-        let maxBottom = scrollTop + 100;
-
-        const parentWindow = linkEl.closest(".ref-preview-window") as HTMLElement;
-        if (parentWindow) {
-          const parentTop = parseInt(parentWindow.style.top || "0");
-          const parentRect = parentWindow.getBoundingClientRect();
-          const parentBottom = parentTop + parentRect.height;
-          maxBottom = parentBottom;
-        }
-
-        for (const existingWindow of prev) {
-          const existingElement = document.querySelector(
-            `[data-window-id="${existingWindow.id}"]`,
-          ) as HTMLElement;
-          if (existingElement) {
-            const existingRect = existingElement.getBoundingClientRect();
-            const existingTop = existingWindow.initialPosition?.top || 0;
-            const existingBottom = existingTop + existingRect.height;
-
-            if (existingBottom > maxBottom) {
-              maxBottom = existingBottom;
-            }
-          } else if (existingWindow.initialPosition) {
-            const estimatedBottom = existingWindow.initialPosition.top + 500;
-            if (estimatedBottom > maxBottom) {
-              maxBottom = estimatedBottom;
-            }
-          }
-        }
-
-        const topPosition = maxBottom + 20;
-
-        return [
-          ...prev,
-          {
-            id: childId,
-            targetId: childTargetId,
-            depth: parentDepth + 1,
-            initialPosition: { top: topPosition, left: leftPosition },
-          },
-        ];
-      });
     },
-    [],
+    [useFloating, updateFloatingPosition],
   );
 
-  const closeChildWindow = useCallback((childId: string) => {
-    setChildWindows((prev) => prev.filter((child) => child.id !== childId));
-  }, []);
+  const closeChildWindow = useCallback(
+    (childId: string) => {
+      setChildWindows((prev) => prev.filter((child) => child.id !== childId));
+      if (useFloating) {
+        requestAnimationFrame(() => updateFloatingPosition());
+      }
+    },
+    [useFloating, updateFloatingPosition],
+  );
 
   const handleJump = () => {
     if (targetId) {
@@ -555,7 +692,7 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
     container.innerHTML = LOADING_TEMPLATE;
 
     let cancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let timeoutId: number | null = null;
     let raf1: number | null = null;
     let raf2: number | null = null;
     let rafScroll1: number | null = null;
@@ -586,6 +723,7 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
     const runRender = () => {
       if (cancelled) return;
       renderPreviewContent(container, previewElement, targetId, 0, openChildWindow);
+      updateFloatingPosition();
       scheduleScroll();
     };
 
@@ -624,7 +762,7 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
       }
       container.innerHTML = "";
     };
-  }, [isExpanded, previewElement, targetId, openChildWindow]);
+  }, [isExpanded, previewElement, targetId, openChildWindow, updateFloatingPosition]);
 
   if (!dataRef || !targetId) {
     return <a {...props}>{children}</a>;
@@ -646,6 +784,7 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
               top: `${windowPosition.top}px`,
               left: `${windowPosition.left}px`,
               zIndex: 1000,
+              maxWidth: windowPosition.maxWidth ? `${windowPosition.maxWidth}px` : undefined,
             }
           : undefined
       }
@@ -678,6 +817,7 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
       windowId={child.id}
       targetId={child.targetId}
       depth={child.depth}
+      linkElement={child.linkElement}
       initialPosition={child.initialPosition}
       useFloating={useFloating}
       onClose={() => closeChildWindow(child.id)}
