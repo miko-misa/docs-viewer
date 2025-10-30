@@ -2,10 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { usePreviewMode } from '@/contexts/PreviewContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export function PreviewModeMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const { previewMode, setPreviewMode } = usePreviewMode();
+  const { theme, setTheme } = useTheme();
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +95,29 @@ export function PreviewModeMenu() {
           >
             <div className="preview-mode-option-title">インライン表示</div>
             <div className="preview-mode-option-desc">テキスト内に展開</div>
+          </button>
+          <div className="preview-mode-header">テーマ</div>
+          <button
+            className={`preview-mode-option ${theme === 'light' ? 'active' : ''}`}
+            onClick={() => {
+              setTheme('light');
+              setIsOpen(false);
+            }}
+            type="button"
+          >
+            <div className="preview-mode-option-title">ライトモード</div>
+            <div className="preview-mode-option-desc">背景を明るく表示</div>
+          </button>
+          <button
+            className={`preview-mode-option ${theme === 'dark' ? 'active' : ''}`}
+            onClick={() => {
+              setTheme('dark');
+              setIsOpen(false);
+            }}
+            type="button"
+          >
+            <div className="preview-mode-option-title">ダークモード</div>
+            <div className="preview-mode-option-desc">背景を落ち着いた色に</div>
           </button>
         </div>
       )}
