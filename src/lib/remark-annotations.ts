@@ -1,10 +1,13 @@
-import type { Root, FootnoteDefinition, FootnoteReference, Parent, Heading, List, ListItem, Text, Content } from "mdast";
+import type { Root, Parent, Content, Heading, List, ListItem, Text, Paragraph } from "mdast";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 import { LabelIndex } from "./refs";
 
+interface PluginOptions {
+  labelIndex: LabelIndex;
+}
+
 type AnnotationInfo = {
-  identifier: string;
   elementId: string;
   number: number;
   title: string;
@@ -12,22 +15,36 @@ type AnnotationInfo = {
   content: Content[];
 };
 
-interface PluginOptions {
-  labelIndex: LabelIndex;
-}
+type DirectiveNode = Parent & {
+  type: "containerDirective";
+  name?: string;
+  attributes?: Record<string, unknown>;
+  data?: {
+    hName?: string;
+    hProperties?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+};
 
 const ANNOTATION_PREFIX = "annotation";
 
-export const remarkAnnotations: Plugin<[PluginOptions], Root> = (options) => {
-  const { labelIndex } = options;
-
+export const remarkAnnotations: Plugin<[PluginOptions], Root> = ({ labelIndex }) => {
   return (tree: Root) => {
-    const definitions = new Map<string, FootnoteDefinition>();
     const annotations: AnnotationInfo[] = [];
-    const referenceMap = new Map<string, AnnotationInfo>();
 
-    collectDefinitions(tree, definitions);
-    processReferences(tree, definitions, annotations, referenceMap, labelIndex);
+    visit(tree, (node, index, parent) => {
+      if (!parent || typeof index !== "number") return;
+      if (node.type !== "containerDirective") return;
+
+      const directive = node as DirectiveNode;
+      if ((directive.name ?? "") !== "annotation") return;
+
+      const annotation = createAnnotation(directive, annotations.length + 1, labelIndex);
+      annotations.push(annotation);
+
+      const marker = createAnnotationMarker(annotation);
+      insertMarkerIntoParent(parent, index, marker, directive);
+    });
 
     if (annotations.length > 0) {
       appendAnnotationSection(tree, annotations);
@@ -35,66 +52,15 @@ export const remarkAnnotations: Plugin<[PluginOptions], Root> = (options) => {
   };
 };
 
-function collectDefinitions(tree: Root, definitions: Map<string, FootnoteDefinition>) {
-  visit(tree, "footnoteDefinition", (node) => {
-    const definition = node as FootnoteDefinition;
-    definitions.set(definition.identifier, definition);
-  });
-
-  tree.children = tree.children.filter((child) => child.type !== "footnoteDefinition");
-}
-
-function processReferences(
-  tree: Root,
-  definitions: Map<string, FootnoteDefinition>,
-  annotations: AnnotationInfo[],
-  referenceMap: Map<string, AnnotationInfo>,
-  labelIndex: LabelIndex,
-) {
-  visit(tree, "footnoteReference", (node, index, parent) => {
-    if (!parent || typeof index !== "number") {
-      return;
-    }
-
-    const reference = node as FootnoteReference;
-    const definition = definitions.get(reference.identifier);
-    const annotation = ensureAnnotation(reference, definition, annotations, referenceMap, labelIndex);
-    const markerText = String(annotation.number);
-
-    const linkNode = createAnnotationLink(annotation, markerText);
-    parent.children.splice(index, 1, linkNode);
-  });
-}
-
-function ensureAnnotation(
-  reference: FootnoteReference,
-  definition: FootnoteDefinition | undefined,
-  annotations: AnnotationInfo[],
-  referenceMap: Map<string, AnnotationInfo>,
+function createAnnotation(
+  directive: DirectiveNode,
+  number: number,
   labelIndex: LabelIndex,
 ): AnnotationInfo {
-  const existing = referenceMap.get(reference.identifier);
-  if (existing) {
-    return existing;
-  }
-
-  const number = annotations.length + 1;
-  const elementId = `${ANNOTATION_PREFIX}-${reference.identifier || number}`;
-  const content = cloneNodes(definition?.children ?? createFallbackContent(reference.identifier));
-  const summary = extractSummary(content);
+  const elementId = `${ANNOTATION_PREFIX}-${number}`;
   const title = `注釈 ${number}`;
-
-  const info: AnnotationInfo = {
-    identifier: reference.identifier,
-    elementId,
-    number,
-    title,
-    summary,
-    content,
-  };
-
-  referenceMap.set(reference.identifier, info);
-  annotations.push(info);
+  const content = cloneNodes((directive.children as Content[]) ?? []);
+  const summary = extractSummary(content);
 
   labelIndex.add({
     id: elementId,
@@ -104,19 +70,25 @@ function ensureAnnotation(
     summary,
   });
 
-  return info;
+  return {
+    elementId,
+    number,
+    title,
+    summary,
+    content,
+  };
 }
 
-function createAnnotationLink(annotation: AnnotationInfo, markerText: string): FootnoteReference {
+function createAnnotationMarker(annotation: AnnotationInfo): Content {
+  const markerText: Text = {
+    type: "text",
+    value: String(annotation.number),
+  };
+
   return {
     type: "link",
     url: `#${annotation.elementId}`,
-    children: [
-      {
-        type: "text",
-        value: markerText,
-      } as Text,
-    ],
+    children: [markerText],
     data: {
       hName: "a",
       hProperties: {
@@ -126,7 +98,111 @@ function createAnnotationLink(annotation: AnnotationInfo, markerText: string): F
         "data-ref-title": annotation.title,
       },
     },
-  } as unknown as FootnoteReference;
+  } as Content;
+}
+
+function insertMarkerIntoParent(
+  parent: Parent,
+  index: number,
+  marker: Content,
+  directive: DirectiveNode,
+) {
+  if (parent.type === "paragraph") {
+    parent.children.splice(index, 1, marker);
+    return;
+  }
+
+  const previous = parent.children[index - 1];
+  const next = parent.children[index + 1];
+  const hasBlankBefore = hasBlankLineBetween(previous, directive);
+  const hasBlankAfter = hasBlankLineBetween(directive, next);
+
+  if (hasBlankBefore && next?.type === "paragraph") {
+    prependMarkerToParagraph(next as Paragraph, marker);
+    parent.children.splice(index, 1);
+    return;
+  }
+
+  if (!hasBlankBefore && previous?.type === "paragraph") {
+    const paragraph = previous as Paragraph;
+    appendMarkerToParagraph(paragraph, marker);
+    parent.children.splice(index, 1);
+    if (!hasBlankAfter) {
+      mergeFollowingParagraph(parent, index, paragraph);
+    }
+    return;
+  }
+
+  if (next?.type === "paragraph") {
+    prependMarkerToParagraph(next as Paragraph, marker);
+    parent.children.splice(index, 1);
+    return;
+  }
+
+  if (previous?.type === "paragraph") {
+    appendMarkerToParagraph(previous as Paragraph, marker);
+    parent.children.splice(index, 1);
+    return;
+  }
+
+  parent.children.splice(index, 1, {
+    type: "paragraph",
+    children: [marker],
+  } as Paragraph);
+}
+
+function hasBlankLineBetween(
+  a: { position?: { end?: { line?: number } } } | undefined,
+  b: { position?: { start?: { line?: number } } } | undefined,
+): boolean {
+  if (!a?.position?.end || !b?.position?.start) return false;
+  const endLine = a.position.end.line ?? 0;
+  const startLine = b.position.start.line ?? 0;
+  return startLine - endLine > 1;
+}
+
+function appendMarkerToParagraph(paragraph: Paragraph, marker: Content) {
+  paragraph.children.push(marker);
+}
+
+function prependMarkerToParagraph(paragraph: Paragraph, marker: Content) {
+  paragraph.children.unshift(marker);
+  trimLeadingWhitespace(paragraph);
+}
+
+function trimLeadingWhitespace(paragraph: Paragraph) {
+  if (paragraph.children.length < 2) return;
+  const first = paragraph.children[1];
+  if (first && first.type === "text") {
+    first.value = first.value?.replace(/^\s+/, "") ?? "";
+    if (first.value.length === 0) {
+      paragraph.children.splice(1, 1);
+    }
+  }
+}
+
+function mergeFollowingParagraph(parent: Parent, index: number, target: Paragraph) {
+  const nextNode = parent.children[index];
+  if (!nextNode || nextNode.type !== "paragraph") return;
+
+  const nextParagraph = nextNode as Paragraph;
+  const nextChildren = cloneNodes(nextParagraph.children);
+
+  if (nextChildren.length > 0) {
+    const first = nextChildren[0];
+    if (first?.type === "text") {
+      first.value = first.value?.replace(/^\s+/, "") ?? "";
+      if (first.value.length === 0) {
+        nextChildren.shift();
+      }
+    }
+  }
+
+  if (nextChildren.length > 0) {
+    target.children.push(...nextChildren);
+  }
+
+  parent.children.splice(index, 1);
 }
 
 function appendAnnotationSection(tree: Root, annotations: AnnotationInfo[]) {
@@ -137,7 +213,7 @@ function appendAnnotationSection(tree: Root, annotations: AnnotationInfo[]) {
       {
         type: "text",
         value: "注釈",
-      } as Text,
+      },
     ],
   };
 
@@ -200,18 +276,4 @@ function cloneNodes<T extends Content>(nodes: T[]): T[] {
     }
     return JSON.parse(JSON.stringify(node)) as T;
   });
-}
-
-function createFallbackContent(identifier: string): Content[] {
-  return [
-    {
-      type: "paragraph",
-      children: [
-        {
-          type: "text",
-          value: `注釈 "${identifier}" の本文が見つかりません。`,
-        },
-      ],
-    },
-  ];
 }

@@ -11,7 +11,7 @@ export interface LabelInfo {
   /** ラベルID（例: sec-intro, thm-pythagorean） */
   id: string;
   /** 種類（heading, column, annotation など） */
-  type: 'heading' | 'column' | 'annotation';
+  type: "heading" | "column" | "annotation";
   /** タイトル */
   title: string;
   /** 要素のDOM ID */
@@ -52,6 +52,6 @@ export class LabelIndex {
    * 例: "sec:intro" → "sec-intro"
    */
   static normalizeId(labelId: string): string {
-    return labelId.replace(/:/g, '-');
+    return labelId.replace(/:/g, "-");
   }
 }
