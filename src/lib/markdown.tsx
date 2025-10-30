@@ -237,7 +237,7 @@ const sanitizeSchema: Schema = {
       "height",
       "xmlns",
       "fill",
-      "style",
+      "stroke",
       "xmlns:xlink",
       "xmlns:h5",
     ],
@@ -318,7 +318,7 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
 }
 
 const enforceInlineMathRendering: Plugin<[], Parent> = () => (tree: Parent) => {
-  visit(tree, "element", (node) => {
+  visit(tree, "element", (node, index, parent) => {
     const element = node as Element & { classNames?: unknown };
     if (element.tagName !== "svg") return;
 
@@ -336,6 +336,41 @@ const enforceInlineMathRendering: Plugin<[], Parent> = () => (tree: Parent) => {
     delete element.classNames;
 
     if (!classes.includes("typst-doc")) classes.unshift("typst-doc");
+
+    // 親要素を確認して、インライン/ブロックを判定
+    if (parent && "tagName" in parent && "children" in parent) {
+      const parentElement = parent as Element & Parent;
+      
+      if (parentElement.tagName === "p") {
+        const siblings = parentElement.children;
+        
+        // pの子要素を解析
+        let hasNonWhitespaceText = false;
+        let svgCount = 0;
+        
+        for (const child of siblings) {
+          if (child.type === "text") {
+            const textValue = (child as { value?: string }).value || "";
+            if (textValue.trim().length > 0) {
+              hasNonWhitespaceText = true;
+            }
+          } else if (child.type === "element" && (child as Element).tagName === "svg") {
+            svgCount++;
+          } else if (child.type === "element") {
+            // 他の要素がある場合もインライン扱い
+            hasNonWhitespaceText = true;
+          }
+        }
+        
+        // テキストがあるか、複数のSVGがある場合はインライン
+        if (hasNonWhitespaceText || svgCount > 1) {
+          if (!classes.includes("typst-inline")) classes.push("typst-inline");
+        } else if (svgCount === 1) {
+          // SVG1つのみの場合はブロック
+          if (!classes.includes("typst-block")) classes.push("typst-block");
+        }
+      }
+    }
 
     props.className = Array.from(new Set(classes)).join(" ");
     element.properties = props;

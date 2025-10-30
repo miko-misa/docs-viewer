@@ -19,19 +19,34 @@ export function TypstSvg({
 
     const base: React.CSSProperties = {};
 
-    if (typeof style === "object" && style !== null) {
-      Object.assign(base, style as React.CSSProperties);
-    }
-
+    // data-typst-style から復元したスタイルを先に適用
     if (parsedStyle) {
       Object.assign(base, parsedStyle);
+    }
+
+    // 明示的に渡されたstyleで上書き
+    if (typeof style === "object" && style !== null) {
+      Object.assign(base, style as React.CSSProperties);
     }
 
     return Object.keys(base).length > 0 ? base : undefined;
   }, [style, parsedStyle]);
 
+  // fillとstrokeは明示的に指定されている場合のみ使用
+  // propsから分離するが、undefinedの場合はデフォルト値を設定しない
+  const { fill, stroke, ...svgProps } = rest;
+
+  // fillとstrokeを条件付きで設定
+  const fillProp = fill !== undefined ? fill : undefined;
+  const strokeProp = stroke !== undefined ? stroke : undefined;
+
   return (
-    <svg {...rest} style={mergedStyle}>
+    <svg
+      {...svgProps}
+      {...(fillProp !== undefined && { fill: fillProp })}
+      {...(strokeProp !== undefined && { stroke: strokeProp })}
+      style={mergedStyle}
+    >
       {children}
     </svg>
   );

@@ -13,34 +13,71 @@
   --color-primary-700: #0158a1;
   --color-primary-800: #064b85;
   --color-primary-900: #0b3f6e;
-  
+
   /* 背景とテキスト */
   --background: #fafbfc;
   --foreground: #1e293b;
   --muted-foreground: #475569;
   --muted-background: #f1f5f9;
-  
+
   /* アクセントカラー */
   --color-accent-teal: #0d9488;
   --color-accent-purple: #7c3aed;
   --color-accent-amber: #d97706;
-  
+
   /* ボーダーとサブテキスト */
   --color-border: #cbd5e1;
   --color-border-subtle: #e2e8f0;
-  
+
   /* コードブロック */
   --color-code-bg: #f1f5f9;
   --color-code-border: #e2e8f0;
-  
+
   --color-background: #fafbfc;
   --color-foreground: #1e293b;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+:root[data-theme="dark"] {
+  /* 寒色系カラーパレット（ダークモード） */
+  /* プライマリカラー - 青系 */
+  --color-primary-50: #0b3f6e;
+  --color-primary-100: #064b85;
+  --color-primary-200: #0158a1;
+  --color-primary-300: #006fc7;
+  --color-primary-400: #0c8ce9;
+  --color-primary-500: #36a6fa;
+  --color-primary-600: #7cc4fd;
+  --color-primary-700: #b9dffe;
+  --color-primary-800: #e0efff;
+  --color-primary-900: #f0f7ff;
+
+  /* 背景とテキスト */
+  --background: #0f1419;
+  --foreground: #ffffff;
+  --muted-foreground: #c5c7cb;
+  --muted-background: #1e293b;
+
+  /* アクセントカラー */
+  --color-accent-teal: #14b8a6;
+  --color-accent-purple: #a78bfa;
+  --color-accent-amber: #fbbf24;
+
+  /* ボーダーとサブテキスト */
+  --color-border: #334155;
+  --color-border-subtle: #1e293b;
+
+  /* コードブロック */
+  --color-code-bg: #1e293b;
+  --color-code-border: #334155;
+
+  --color-background: #0f1419;
+  --color-foreground: #e2e8f0;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     /* 寒色系カラーパレット（ダークモード） */
     /* プライマリカラー - 青系 */
     --color-primary-50: #0b3f6e;
@@ -53,26 +90,26 @@
     --color-primary-700: #b9dffe;
     --color-primary-800: #e0efff;
     --color-primary-900: #f0f7ff;
-    
+
     /* 背景とテキスト */
     --background: #0f1419;
-    --foreground: #e2e8f0;
-    --muted-foreground: #94a3b8;
+    --foreground: #ffffff;
+    --muted-foreground: #c5c7cb;
     --muted-background: #1e293b;
-    
+
     /* アクセントカラー */
     --color-accent-teal: #14b8a6;
     --color-accent-purple: #a78bfa;
     --color-accent-amber: #fbbf24;
-    
+
     /* ボーダーとサブテキスト */
     --color-border: #334155;
     --color-border-subtle: #1e293b;
-    
+
     /* コードブロック */
     --color-code-bg: #1e293b;
     --color-code-border: #334155;
-    
+
     --color-background: #0f1419;
     --color-foreground: #e2e8f0;
   }
@@ -95,13 +132,23 @@ body {
   color: #ffffff;
 }
 
+:root[data-theme="dark"] ::selection {
+  background: #64748b; /* ダークモードでは少し明るめ */
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] ::-moz-selection {
+  background: #64748b;
+  color: #ffffff;
+}
+
 @media (prefers-color-scheme: dark) {
-  ::selection {
+  :root:not([data-theme="light"]) ::selection {
     background: #64748b; /* ダークモードでは少し明るめ */
     color: #ffffff;
   }
 
-  ::-moz-selection {
+  :root:not([data-theme="light"]) ::-moz-selection {
     background: #64748b;
     color: #ffffff;
   }
@@ -218,8 +265,12 @@ body {
   user-select: none;
 }
 
+:root[data-theme="dark"] .docs-content .heading-hash {
+  color: #36a6fa; /* ダークモードでも青め */
+}
+
 @media (prefers-color-scheme: dark) {
-  .docs-content .heading-hash {
+  :root:not([data-theme="light"]) .docs-content .heading-hash {
     color: #36a6fa; /* ダークモードでも青め */
   }
 }
@@ -284,8 +335,9 @@ body {
 .docs-content table + p,
 .docs-content hr + p,
 .docs-content .directive + p,
-.docs-content svg.typst-doc + p {
-  margin-top: 1rem;
+.docs-content svg.typst-doc + p,
+.docs-content p + svg.typst-doc {
+  margin-top: 1rem !important;
 }
 
 /* 各要素の後の見出しは3rem（1.5行分）の余白 */
@@ -358,8 +410,12 @@ body {
   font-weight: 600;
 }
 
+:root[data-theme="dark"] .docs-content ol > li::marker {
+  color: #94a3b8; /* ダークモードでは少し明るめ */
+}
+
 @media (prefers-color-scheme: dark) {
-  .docs-content ol > li::marker {
+  :root:not([data-theme="light"]) .docs-content ol > li::marker {
     color: #94a3b8; /* ダークモードでは少し明るめ */
   }
 }
@@ -443,29 +499,79 @@ body {
   margin-bottom: 0;
 }
 
-
 /* Typst数式のスタイリング */
 .docs-content svg.typst-doc {
   max-width: 100%;
   height: auto;
   color: inherit;
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.docs-content svg.typst-doc * {
+  color: inherit;
+}
+
+.docs-content svg.typst-doc [fill="#000"],
+.docs-content svg.typst-doc [fill="#000000"],
+.docs-content svg.typst-doc [fill="#000000ff"],
+.docs-content svg.typst-doc [fill="rgb(0,0,0)"],
+.docs-content svg.typst-doc [fill="rgba(0,0,0,1)"],
+.docs-content svg.typst-doc [fill="black"],
+.docs-content svg.typst-doc [style*="fill:#000"],
+.docs-content svg.typst-doc [style*="fill: #000"] {
+  fill: currentColor !important;
+}
+
+.docs-content svg.typst-doc [stroke="#000"],
+.docs-content svg.typst-doc [stroke="#000000"],
+.docs-content svg.typst-doc [stroke="#000000ff"],
+.docs-content svg.typst-doc [stroke="rgb(0,0,0)"],
+.docs-content svg.typst-doc [stroke="rgba(0,0,0,1)"],
+.docs-content svg.typst-doc [stroke="black"],
+.docs-content svg.typst-doc [style*="stroke:#000"],
+.docs-content svg.typst-doc [style*="stroke: #000"] {
+  stroke: currentColor !important;
 }
 
 /* インライン数式 - vertical-alignはインラインスタイルを優先 */
-.docs-content p svg.typst-doc,
+.docs-content p svg.typst-doc.typst-inline,
 .docs-content li svg.typst-doc,
 .docs-content .typst-inline {
   display: inline-block;
   margin: 0 0.15em;
   line-height: 0;
+  font-size: 1.15em;
+  vertical-align: middle;
 }
 
 /* ブロック数式 */
-.docs-content > svg.typst-doc,
 .docs-content .typst-block {
   display: block;
-  margin: 1rem 0;
+  font-size: 1.35em;
+}
+
+.docs-content > svg.typst-doc {
+  display: block;
+  margin: 1rem auto;
+  font-size: 1.35em;
+}
+
+/* ブロック数式を含む段落 */
+.docs-content p:has(> svg.typst-block) {
   text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* ブロック数式を含む段落の前の各種要素に下余白を追加 */
+svg.typst-block {
+  margin-top: 1rem !important;
+}
+
+/* ブロック数式を含む段落の次の要素に上余白を追加 */
+.docs-content p:has(> svg.typst-block) + * {
+  margin-top: 1rem !important;
 }
 
 /* コードブロック */
@@ -495,8 +601,12 @@ body {
   font-style: italic;
 }
 
+:root[data-theme="dark"] .docs-content blockquote {
+  border-left-color: #475569; /* ダークモードでは少し暗め */
+}
+
 @media (prefers-color-scheme: dark) {
-  .docs-content blockquote {
+  :root:not([data-theme="light"]) .docs-content blockquote {
     border-left-color: #475569; /* ダークモードでは少し暗め */
   }
 }
@@ -625,28 +735,28 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 0.5rem;
-  
+
   /* スムーズなスクロール */
   scroll-behavior: smooth;
-  
+
   /* カスタムスクロールバー（Webkit） */
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: var(--color-border);
     border-radius: 3px;
   }
-  
+
   &::-webkit-scrollbar-thumb:hover {
     background: var(--muted-foreground);
   }
-  
+
   /* Firefox スクロールバー */
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
@@ -696,7 +806,7 @@ body {
 }
 
 .toc-item[data-level="4"] .toc-link::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0.5rem;
   top: 50%;
@@ -727,12 +837,20 @@ body {
   height: 6px;
 }
 
+:root[data-theme="dark"] .toc-item[data-level="4"] .toc-link[aria-current="true"]::before {
+  background-color: var(--color-primary-500);
+}
+
+:root[data-theme="dark"] .toc-item[data-level="4"] .toc-link:hover::before {
+  background-color: var(--color-primary-500);
+}
+
 @media (prefers-color-scheme: dark) {
-  .toc-item[data-level="4"] .toc-link[aria-current="true"]::before {
+  :root:not([data-theme="light"]) .toc-item[data-level="4"] .toc-link[aria-current="true"]::before {
     background-color: var(--color-primary-500);
   }
-  
-  .toc-item[data-level="4"] .toc-link:hover::before {
+
+  :root:not([data-theme="light"]) .toc-item[data-level="4"] .toc-link:hover::before {
     background-color: var(--color-primary-500);
   }
 }
@@ -759,8 +877,13 @@ body {
   transform: translateX(2px);
 }
 
+:root[data-theme="dark"] .toc-link[aria-current="true"] {
+  color: var(--color-primary-500);
+  background-color: color-mix(in srgb, var(--color-primary-900) 15%, transparent);
+}
+
 @media (prefers-color-scheme: dark) {
-  .toc-link[aria-current="true"] {
+  :root:not([data-theme="light"]) .toc-link[aria-current="true"] {
     color: var(--color-primary-500);
     background-color: color-mix(in srgb, var(--color-primary-900) 15%, transparent);
   }
@@ -793,16 +916,30 @@ body {
   color: var(--color-primary-700);
 }
 
+:root[data-theme="dark"] .ref-link {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+:root[data-theme="dark"] .ref-link:hover {
+  background-color: rgba(59, 130, 246, 0.25);
+}
+
+:root[data-theme="dark"] .ref-link-active {
+  background-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+  color: var(--color-primary-400);
+}
+
 @media (prefers-color-scheme: dark) {
-  .ref-link {
+  :root:not([data-theme="light"]) .ref-link {
     background-color: rgba(59, 130, 246, 0.15);
   }
-  
-  .ref-link:hover {
+
+  :root:not([data-theme="light"]) .ref-link:hover {
     background-color: rgba(59, 130, 246, 0.25);
   }
-  
-  .ref-link-active {
+
+  :root:not([data-theme="light"]) .ref-link-active {
     background-color: rgba(59, 130, 246, 0.4);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
     color: var(--color-primary-400);
@@ -815,8 +952,9 @@ body {
   border: 2px solid var(--color-primary-500);
   border-radius: 0.75rem;
   background: var(--muted-background);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-              0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   overflow: hidden;
   animation: slideDown 0.2s ease-out;
   position: relative;
@@ -827,8 +965,9 @@ body {
   margin: 0;
   width: 650px;
   max-width: calc(100vw - 40px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2),
-              0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.2),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
   animation: fadeIn 0.2s ease-out;
   position: absolute;
 }
@@ -966,12 +1105,24 @@ body {
   margin-top: 0;
 }
 
-.ref-preview-content h1 { font-size: 1.5rem; }
-.ref-preview-content h2 { font-size: 1.25rem; }
-.ref-preview-content h3 { font-size: 1.125rem; }
-.ref-preview-content h4 { font-size: 1rem; }
-.ref-preview-content h5 { font-size: 0.9375rem; }
-.ref-preview-content h6 { font-size: 0.875rem; }
+.ref-preview-content h1 {
+  font-size: 1.5rem;
+}
+.ref-preview-content h2 {
+  font-size: 1.25rem;
+}
+.ref-preview-content h3 {
+  font-size: 1.125rem;
+}
+.ref-preview-content h4 {
+  font-size: 1rem;
+}
+.ref-preview-content h5 {
+  font-size: 0.9375rem;
+}
+.ref-preview-content h6 {
+  font-size: 0.875rem;
+}
 
 .ref-preview-content p {
   margin-bottom: 0;
@@ -1059,12 +1210,20 @@ body {
   background-color: var(--color-primary-700);
 }
 
+:root[data-theme="dark"] .ref-preview-jump {
+  background-color: var(--color-primary-500);
+}
+
+:root[data-theme="dark"] .ref-preview-jump:hover {
+  background-color: var(--color-primary-400);
+}
+
 @media (prefers-color-scheme: dark) {
-  .ref-preview-jump {
+  :root:not([data-theme="light"]) .ref-preview-jump {
     background-color: var(--color-primary-500);
   }
-  
-  .ref-preview-jump:hover {
+
+  :root:not([data-theme="light"]) .ref-preview-jump:hover {
     background-color: var(--color-primary-400);
   }
 }
@@ -1136,7 +1295,9 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s, opacity 0.2s;
+  transition:
+    background-color 0.2s,
+    opacity 0.2s;
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
@@ -1175,4 +1336,3 @@ body {
   font-size: 0.75rem;
   color: var(--muted-foreground);
 }
-
