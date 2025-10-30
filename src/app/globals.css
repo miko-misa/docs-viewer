@@ -558,6 +558,32 @@ body {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-200) 45%, transparent);
 }
 
+.docs-content a.annotation-marker,
+.docs-content a.annotation-marker:visited {
+  font-size: 0.75em;
+  vertical-align: super;
+  margin-left: 0.15em;
+  text-decoration: none;
+  color: var(--muted-foreground);
+}
+
+.docs-content a.annotation-marker:hover,
+.docs-content a.annotation-marker:focus-visible {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+.docs-content .annotation-list {
+  margin-top: 1.5rem;
+  color: var(--muted-foreground);
+  padding-left: 1.5rem;
+  font-size: 0.95em;
+}
+
+.docs-content .annotation-list .annotation-entry {
+  margin-bottom: 1rem;
+}
+
 /* Typst数式のスタイリング */
 .docs-content svg.typst-doc {
   max-width: 100%;

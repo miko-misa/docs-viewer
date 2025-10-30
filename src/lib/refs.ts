@@ -10,12 +10,14 @@
 export interface LabelInfo {
   /** ラベルID（例: sec-intro, thm-pythagorean） */
   id: string;
-  /** 種類（heading or column） */
-  type: 'heading' | 'column';
+  /** 種類（heading, column, annotation など） */
+  type: 'heading' | 'column' | 'annotation';
   /** タイトル */
   title: string;
   /** 要素のDOM ID */
   elementId: string;
+  /** 簡易サマリ（注釈などで利用） */
+  summary?: string;
 }
 
 /**
