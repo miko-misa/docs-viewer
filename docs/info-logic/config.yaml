@@ -1,3 +1,9 @@
 title: 情報論理学入門
+description: >-
+  このサイトは、著者が情報論理学に関するドキュメントをまとめたものです。自分向けです。
 tags:
   - info-logic
+order:
+  - intro
+  - set-relation
+  - prop-define
