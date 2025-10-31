@@ -24,9 +24,10 @@ import { TypstSvg } from "../components/typst-svg";
 import { CheckIcon } from "../components/CheckIcon";
 import { TaskCheckbox } from "../components/TaskCheckbox";
 import type { Plugin } from "unified";
-import { visit } from "unist-util-visit";
 import type { Parent } from "unist";
 import type { Element, Properties } from "hast";
+import type { Text } from "mdast";
+import { visit } from "unist-util-visit";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { jsxDEV } from "react/jsx-dev-runtime";
 import type { Schema } from "hast-util-sanitize";
@@ -47,8 +48,42 @@ type DirectiveNode = Parent & {
   type: "textDirective" | "leafDirective" | "containerDirective";
 };
 
+function getDirectiveContentText(node: Parent): string {
+  const children = (
+    node as unknown as {
+      children?: Array<{ type?: string; value?: unknown; name?: unknown }>;
+    }
+  ).children;
+  if (!Array.isArray(children)) {
+    return "";
+  }
+
+  let text = "";
+  for (const child of children) {
+    if (!child) continue;
+    if (child.type === "text" && typeof child.value === "string") {
+      text += child.value;
+    } else if (child.type === "textDirective") {
+      text += `:${String(child.name ?? "")}`;
+    } else if (child.type === "break") {
+      text += "\n";
+    }
+  }
+  return text;
+}
+
+function isStandaloneDirectiveCloser(node: unknown): node is Parent {
+  if (!node || typeof node !== "object") return false;
+  const paragraph = node as Parent & { type?: string };
+  if (paragraph.type !== "paragraph") return false;
+  const text = getDirectiveContentText(paragraph).trim();
+  if (text.length === 0) return false;
+  // Treat paragraphs consisting solely of directive closers (e.g., :::) as closers.
+  return /^:::$/.test(text);
+}
+
 const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
-  visit(tree, (node) => {
+  visit(tree, (node, index, parent) => {
     if (
       node.type !== "textDirective" &&
       node.type !== "leafDirective" &&
@@ -73,9 +108,7 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
     const isColumnToc = directive.name === "column-toc";
     const baseName = isColumnToc ? "column" : directive.name || "";
 
-    const classes = [`directive`, baseName ? `directive-${baseName}` : null].filter(
-      Boolean,
-    );
+    const classes = [`directive`, baseName ? `directive-${baseName}` : null].filter(Boolean);
 
     const hProperties: Record<string, unknown> = {
       ...(directive.attributes ?? {}),
@@ -86,30 +119,18 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
     if ((directive.name === "column" || isColumnToc) && directive.children) {
       const children = directive.children as Parent[];
       let title = "";
-      
+
       for (let i = 0; i < children.length; i++) {
         const child = children[i];
         if (child.type === "paragraph" && child.children) {
-          const nodes = child.children as any[];
-          let reconstructedText = "";
-          
-          for (const node of nodes) {
-            if (node.type === "text") {
-              reconstructedText += node.value || "";
-            } else if (node.type === "textDirective") {
-              reconstructedText += ":" + (node.name || "");
-            } else if (node.type === "break") {
-              reconstructedText += "\n";
-            }
-          }
-          
-          const lines = reconstructedText.split("\n");
+          const paragraphText = getDirectiveContentText(child);
+          const lines = paragraphText.split("\n");
           const contentLines: string[] = [];
           let hasMetadata = false;
-          
+
           for (const line of lines) {
             const trimmed = line.trim();
-            
+
             if (trimmed.startsWith("@title:")) {
               title = trimmed.substring(7).trim();
               hProperties["data-title"] = title;
@@ -136,12 +157,13 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
               contentLines.push(line);
             }
           }
-          
+
           if (hasMetadata) {
             const newContent = contentLines.join("\n").trim();
-            
+
             if (newContent) {
-              child.children = [{ type: "text", value: newContent }] as any;
+              const textNode = { type: "text", value: newContent } as unknown as Text;
+              child.children = [textNode];
             } else {
               children.splice(i, 1);
               i--;
@@ -160,6 +182,46 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
         // すでにremarkCollectLabelsでIDが設定されていない場合のみ、タイトルからslugを生成
         if (!hProperties["id"]) {
           hProperties["id"] = slug(title);
+        }
+      }
+    }
+
+    if (
+      (directive.name === "column" || directive.name === "column-toc") &&
+      directive.children &&
+      parent &&
+      typeof index === "number" &&
+      Array.isArray((parent as Parent).children)
+    ) {
+      const parentChildren = (parent as Parent).children as Parent[];
+      const start = index + 1;
+      let closingIndex = -1;
+
+      for (let i = start; i < parentChildren.length; i++) {
+        const sibling = parentChildren[i];
+        if (
+          sibling.type === "containerDirective" ||
+          sibling.type === "leafDirective" ||
+          sibling.type === "textDirective"
+        ) {
+          break;
+        }
+        if (isStandaloneDirectiveCloser(sibling)) {
+          closingIndex = i;
+          break;
+        }
+        // Continue scanning for a closer while staying before any subsequent directive sibling.
+      }
+
+      if (closingIndex !== -1) {
+        const movedNodes = parentChildren.slice(start, closingIndex);
+        if (movedNodes.length > 0) {
+          const directiveChildren = directive.children as Parent[];
+          directiveChildren.push(...movedNodes);
+        }
+        parentChildren.splice(start, closingIndex - start);
+        if (parentChildren[start] && isStandaloneDirectiveCloser(parentChildren[start])) {
+          parentChildren.splice(start, 1);
         }
       }
     }
@@ -347,14 +409,14 @@ const enforceInlineMathRendering: Plugin<[], Parent> = () => (tree: Parent) => {
     // 親要素を確認して、インライン/ブロックを判定
     if (parent && "tagName" in parent && "children" in parent) {
       const parentElement = parent as Element & Parent;
-      
+
       if (parentElement.tagName === "p") {
         const siblings = parentElement.children;
-        
+
         // pの子要素を解析
         let hasNonWhitespaceText = false;
         let svgCount = 0;
-        
+
         for (const child of siblings) {
           if (child.type === "text") {
             const textValue = (child as { value?: string }).value || "";
@@ -368,7 +430,7 @@ const enforceInlineMathRendering: Plugin<[], Parent> = () => (tree: Parent) => {
             hasNonWhitespaceText = true;
           }
         }
-        
+
         // テキストがあるか、複数のSVGがある場合はインライン
         if (hasNonWhitespaceText || svgCount > 1) {
           if (!classes.includes("typst-inline")) classes.push("typst-inline");

@@ -64,10 +64,7 @@ function resolvePreviewSource(element: HTMLElement | null): HTMLElement | null {
   if (column) {
     return column;
   }
-  const docsContent = element.closest<HTMLElement>(".docs-content");
-  // Prefer returning the element itself rather than the whole docs-content to
-  // avoid cloning the entire document. This keeps preview cloning scope small
-  // and reduces UI thread blocking.
+  // Prefer returning the element itself rather than the root container to avoid cloning everything.
   return element;
 }
 
@@ -145,15 +142,14 @@ function renderPreviewContent(
 ) {
   // Insert loading immediately, then perform heavy HTML build in idle time so
   // the popup UI appears quickly and the main thread isn't blocked.
-  try {
-    // remove any previous delegated handler
-    const prev = (container as any).__refPreviewHandler as EventListener | undefined;
-    if (prev) {
-      container.removeEventListener("click", prev);
-      delete (container as any).__refPreviewHandler;
-    }
-  } catch (e) {
-    /* ignore */
+  const containerWithHandler = container as HTMLDivElement & {
+    __refPreviewHandler?: EventListener;
+  };
+
+  const prev = containerWithHandler.__refPreviewHandler;
+  if (prev) {
+    container.removeEventListener("click", prev);
+    delete containerWithHandler.__refPreviewHandler;
   }
 
   const doBuild = () => {
@@ -177,15 +173,22 @@ function renderPreviewContent(
     };
 
     container.addEventListener("click", handler);
-    (container as any).__refPreviewHandler = handler;
+    containerWithHandler.__refPreviewHandler = handler;
 
     attachColumnToggleHandlers(container);
   };
 
-  if (typeof window !== "undefined" && (window as any).requestIdleCallback) {
-    (window as any).requestIdleCallback(doBuild, { timeout: 250 });
+  if (typeof window !== "undefined") {
+    const globalWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    };
+    if (globalWindow.requestIdleCallback) {
+      globalWindow.requestIdleCallback(doBuild, { timeout: 250 });
+      return;
+    }
+    window.setTimeout(doBuild, 0);
   } else {
-    // fallback to next tick
+    // fallback to next tick in non-browser env
     setTimeout(doBuild, 0);
   }
 }
@@ -283,13 +286,10 @@ function calculateFloatingPosition(options: FloatingPositionOptions): {
     const docRect = docsContent.getBoundingClientRect();
     const docWidth = docsContent.offsetWidth;
 
-    // ドキュメントの右端に小窓の左端を合わせ、その右側に DOC_GAP の余白を入れる
-    //（ドキュメントの右外に少しスペースを置いて表示）
+    // ドキュメントの右端に小窓の左端を揃え、DOC_GAP 分だけ外側に空間を設ける
     let left = docWidth + DOC_GAP;
 
-    const baseTop = anchorRect.top - docRect.top;
-    let candidateTop = Math.max(0, baseTop);
-
+    const anchorCenterDoc = anchorRect.top - docRect.top + anchorRect.height / 2;
     const existingWindows = Array.from(
       docsContent.querySelectorAll<HTMLElement>(".ref-preview-window.ref-preview-floating"),
     ).filter((el) => el !== exclude);
@@ -309,7 +309,29 @@ function calculateFloatingPosition(options: FloatingPositionOptions): {
       );
     };
 
-    let iterations = 0;
+    const maxTop = Math.max(0, docsContent.scrollHeight - windowHeight - 20);
+    const clampTop = (value: number) => Math.min(Math.max(0, value), maxTop);
+
+    const adjustVertical = (initialTop: number) => {
+      let candidate = clampTop(initialTop);
+      let iterations = 0;
+      while (
+        existingWindows.some((win) => overlaps(candidate, windowHeight, win)) &&
+        iterations < 100
+      ) {
+        const blockingBottom = existingWindows
+          .filter((win) => overlaps(candidate, windowHeight, win))
+          .map((win) => resolveTop(win) + win.getBoundingClientRect().height + FLOATING_MARGIN);
+        if (blockingBottom.length === 0) break;
+        const nextCandidate = Math.max(candidate, Math.min(...blockingBottom));
+        candidate = clampTop(nextCandidate);
+        iterations++;
+      }
+      return candidate;
+    };
+
+    const candidateTopBase = anchorCenterDoc - windowHeight / 2;
+    const candidateTop = adjustVertical(candidateTopBase);
 
     // desiredGlobalLeft は popup の左位置（ビューポート原点基準）
     const desiredGlobalLeft = docRect.left + left;
@@ -322,28 +344,28 @@ function calculateFloatingPosition(options: FloatingPositionOptions): {
 
     // ポップアップが利用可能幅より大きければ、幅を availableWidth に縮めて
     // 左端を VIEWPORT_MARGIN にする（右端に余白が出来る）
+    let maxWidthOverride: number | undefined;
+
+    const toParentCoordinates = (globalLeft: number, top: number) => {
+      const globalTop = docRect.top + top;
+      const offsetParentEl =
+        (windowEl?.offsetParent as HTMLElement | null) ??
+        (anchor.offsetParent as HTMLElement | null) ??
+        docsContent;
+      const parentRect = offsetParentEl?.getBoundingClientRect() ?? { top: 0, left: 0 };
+      return {
+        top: globalTop - parentRect.top,
+        left: globalLeft - parentRect.left,
+        maxWidth: maxWidthOverride,
+      };
+    };
+
     if (popupWidth > availableWidth) {
-      const maxWidth = Math.max(0, availableWidth);
+      maxWidthOverride = Math.max(0, availableWidth);
       const adjustedGlobalLeft = VIEWPORT_MARGIN;
       left = adjustedGlobalLeft - docRect.left;
-
-      // 重なり回避ロジック（幅縮小しても高さの衝突は避ける）
-      while (
-        existingWindows.some((win) => overlaps(candidateTop, windowHeight, win)) &&
-        iterations < 100
-      ) {
-        const blockingBottom = existingWindows
-          .filter((win) => overlaps(candidateTop, windowHeight, win))
-          .map((win) => resolveTop(win) + win.getBoundingClientRect().height + FLOATING_MARGIN);
-        if (blockingBottom.length === 0) break;
-        candidateTop = Math.max(candidateTop, Math.min(...blockingBottom));
-        iterations++;
-      }
-
-      const maxTop = Math.max(0, docsContent.scrollHeight - windowHeight - 20);
-      candidateTop = Math.min(candidateTop, maxTop);
-
-      return { top: candidateTop, left, maxWidth };
+      const globalLeft = docRect.left + left;
+      return toParentCoordinates(globalLeft, candidateTop);
     }
 
     // 画面右端に収めるための最大 global left を計算（ポップアップ幅を使用）
@@ -352,26 +374,11 @@ function calculateFloatingPosition(options: FloatingPositionOptions): {
     const minGlobalLeft = VIEWPORT_MARGIN;
 
     // desiredGlobalLeft を [minGlobalLeft, maxGlobalLeft] の範囲にクランプ
-    let adjustedGlobalLeft = Math.min(Math.max(desiredGlobalLeft, minGlobalLeft), maxGlobalLeft);
-
+    const adjustedGlobalLeft = Math.min(Math.max(desiredGlobalLeft, minGlobalLeft), maxGlobalLeft);
     left = adjustedGlobalLeft - docRect.left;
 
-    while (
-      existingWindows.some((win) => overlaps(candidateTop, windowHeight, win)) &&
-      iterations < 100
-    ) {
-      const blockingBottom = existingWindows
-        .filter((win) => overlaps(candidateTop, windowHeight, win))
-        .map((win) => resolveTop(win) + win.getBoundingClientRect().height + FLOATING_MARGIN);
-      if (blockingBottom.length === 0) break;
-      candidateTop = Math.max(candidateTop, Math.min(...blockingBottom));
-      iterations++;
-    }
-
-    const maxTop = Math.max(0, docsContent.scrollHeight - windowHeight - 20);
-    candidateTop = Math.min(candidateTop, maxTop);
-
-    return { top: candidateTop, left };
+    const globalLeft = docRect.left + left;
+    return toParentCoordinates(globalLeft, candidateTop);
   }
 
   // Fallback: position relative to viewport
@@ -380,8 +387,13 @@ function calculateFloatingPosition(options: FloatingPositionOptions): {
   left = Math.min(left, window.innerWidth - 20 - POPUP_WIDTH);
   left = Math.max(20, left);
 
-  const minTop = scrollY + 40;
-  let candidateTop = Math.max(minTop, anchorRect.top + scrollY - 20);
+  const anchorCenterGlobal = anchorRect.top + scrollY + anchorRect.height / 2;
+  const viewportTopBuffer = 40;
+  const viewportBottomBuffer = 20;
+  const minTop = scrollY + viewportTopBuffer;
+  const maxTop = scrollY + window.innerHeight - windowHeight - viewportBottomBuffer;
+  const clampTop = (value: number) => Math.max(minTop, Math.min(value, maxTop));
+  let candidateTop = clampTop(anchorCenterGlobal - windowHeight / 2);
 
   const existingWindows = Array.from(
     document.querySelectorAll<HTMLElement>(".ref-preview-window.ref-preview-floating"),
@@ -411,13 +423,9 @@ function calculateFloatingPosition(options: FloatingPositionOptions): {
       .filter((win) => overlaps(candidateTop, windowHeight, win))
       .map((win) => resolveTop(win) + win.getBoundingClientRect().height + FLOATING_MARGIN);
     if (blockingBottom.length === 0) break;
-    candidateTop = Math.max(candidateTop, Math.min(...blockingBottom));
+    const nextCandidate = Math.max(candidateTop, Math.min(...blockingBottom));
+    candidateTop = clampTop(nextCandidate);
     iterations++;
-  }
-
-  const maxTop = scrollY + window.innerHeight - windowHeight - 20;
-  if (candidateTop > maxTop) {
-    candidateTop = Math.max(minTop, maxTop);
   }
 
   return { top: candidateTop, left };
@@ -503,6 +511,9 @@ const ChildRefWindow: React.FC<{
     }
 
     container.innerHTML = LOADING_TEMPLATE;
+    const containerWithHandler = container as HTMLDivElement & {
+      __refPreviewHandler?: EventListener;
+    };
     let cancelled = false;
     let timeoutId: number | null = null;
     let raf1: number | null = null;
@@ -570,14 +581,10 @@ const ChildRefWindow: React.FC<{
       if (rafScroll2 !== null && typeof window !== "undefined") {
         window.cancelAnimationFrame(rafScroll2);
       }
-      try {
-        const h = (container as any).__refPreviewHandler as EventListener | undefined;
-        if (h) {
-          container.removeEventListener("click", h);
-          delete (container as any).__refPreviewHandler;
-        }
-      } catch (e) {
-        /* ignore */
+      const handler = containerWithHandler.__refPreviewHandler;
+      if (handler) {
+        container.removeEventListener("click", handler);
+        delete containerWithHandler.__refPreviewHandler;
       }
       container.innerHTML = "";
     };
@@ -756,6 +763,9 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
     if (!container) return;
 
     container.innerHTML = LOADING_TEMPLATE;
+    const containerWithHandler = container as HTMLDivElement & {
+      __refPreviewHandler?: EventListener;
+    };
 
     let cancelled = false;
     let timeoutId: number | null = null;
@@ -826,14 +836,10 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
       if (rafScroll2 !== null && typeof window !== "undefined") {
         window.cancelAnimationFrame(rafScroll2);
       }
-      try {
-        const h = (container as any).__refPreviewHandler as EventListener | undefined;
-        if (h) {
-          container.removeEventListener("click", h);
-          delete (container as any).__refPreviewHandler;
-        }
-      } catch (e) {
-        /* ignore */
+      const handler = containerWithHandler.__refPreviewHandler;
+      if (handler) {
+        container.removeEventListener("click", handler);
+        delete containerWithHandler.__refPreviewHandler;
       }
       container.innerHTML = "";
     };

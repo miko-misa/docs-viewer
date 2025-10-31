@@ -13,14 +13,16 @@ export function extractToc(markdown: string): TocItem[] {
   let inCodeBlock = false;
   let inBlockquote = false;
   let inColumnDirective = false;
+  let columnDirectiveDepth = 0;
   let columnTitle = "";
   let columnLabel = ""; // ラベルを格納
   let columnIncludeInToc = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    const trimmed = line.trim();
 
-    if (line.trim().startsWith("```") || line.trim().startsWith("~~~")) {
+    if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
       inCodeBlock = !inCodeBlock;
       continue;
     }
@@ -29,7 +31,7 @@ export function extractToc(markdown: string): TocItem[] {
       continue;
     }
 
-    inBlockquote = line.trim().startsWith(">");
+    inBlockquote = trimmed.startsWith(">");
 
     if (inBlockquote) {
       continue;
@@ -41,43 +43,52 @@ export function extractToc(markdown: string): TocItem[] {
       columnIncludeInToc = columnStartMatch[1] === "-toc";
       columnTitle = "";
       columnLabel = ""; // リセット
-      continue;
-    }
-
-    if (line.trim() === ":::") {
-      if (inColumnDirective && columnIncludeInToc && columnTitle) {
-        let id: string;
-        
-        if (columnLabel) {
-          // ラベルがある場合: ラベルをIDとして使用
-          id = columnLabel.replace(/:/g, '-'); // normalize
-        } else {
-          // ラベルがない場合: タイトルからslugを生成
-          id = slug(columnTitle);
-        }
-        
-        headings.push({ id, text: columnTitle, level: 4 });
-      }
-      inColumnDirective = false;
-      columnTitle = "";
-      columnLabel = ""; // リセット
-      columnIncludeInToc = false;
+      columnDirectiveDepth = 1;
       continue;
     }
 
     if (inColumnDirective) {
+      if (trimmed !== ":::" && trimmed.startsWith(":::")) {
+        // ネストしたディレクティブの開始
+        columnDirectiveDepth += 1;
+        continue;
+      }
+
+      if (trimmed === ":::") {
+        // ネストしたディレクティブの終了
+        columnDirectiveDepth = Math.max(0, columnDirectiveDepth - 1);
+
+        if (columnDirectiveDepth === 0) {
+          if (columnIncludeInToc && columnTitle) {
+            const id = columnLabel ? columnLabel.replace(/:/g, "-") : slug(columnTitle);
+            headings.push({ id, text: columnTitle, level: 4 });
+          }
+          inColumnDirective = false;
+          columnTitle = "";
+          columnLabel = "";
+          columnIncludeInToc = false;
+        }
+        continue;
+      }
+
       // ラベル行をチェック（独立した行として）
-      const labelOnlyMatch = line.trim().match(/^\(([a-z][a-z0-9-:]*)\)=\s*$/);
+      const labelOnlyMatch = trimmed.match(/^\(([a-z][a-z0-9-:]*)\)=\s*$/);
       if (labelOnlyMatch) {
         columnLabel = labelOnlyMatch[1];
         continue;
       }
-      
+
       // @title: をチェック
-      if (line.trim().startsWith("@title:")) {
-        columnTitle = line.trim().substring(7).trim();
+      if (trimmed.startsWith("@title:")) {
+        columnTitle = trimmed.substring(7).trim();
         continue;
       }
+
+      continue;
+    }
+
+    if (trimmed === ":::") {
+      continue;
     }
 
     const match = line.match(/^(#{1,6})\s+(.+)$/);
@@ -89,12 +100,12 @@ export function extractToc(markdown: string): TocItem[] {
     // ラベル構文 (label)= があるかチェック
     const labelMatch = text.match(/^\(([a-z][a-z0-9-:]*)\)=\s*/);
     let id: string;
-    
+
     if (labelMatch) {
       // ラベルがある場合: ラベルをIDとして使用し、テキストからラベルを削除
       const labelId = labelMatch[1];
-      id = labelId.replace(/:/g, '-'); // normalize
-      text = text.replace(/^\([a-z][a-z0-9-:]*\)=\s*/, '');
+      id = labelId.replace(/:/g, "-"); // normalize
+      text = text.replace(/^\([a-z][a-z0-9-:]*\)=\s*/, "");
     } else {
       // ラベルがない場合: テキストからslugを生成
       id = slug(text);
