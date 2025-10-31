@@ -49,6 +49,8 @@ export const remarkAnnotations: Plugin<[PluginOptions], Root> = ({ labelIndex })
     if (annotations.length > 0) {
       appendAnnotationSection(tree, annotations);
     }
+
+    removeDanglingDirectiveClosers(tree);
   };
 };
 
@@ -276,4 +278,144 @@ function cloneNodes<T extends Content>(nodes: T[]): T[] {
     }
     return JSON.parse(JSON.stringify(node)) as T;
   });
+}
+
+function removeDanglingDirectiveClosers(node: Parent) {
+  if (!Array.isArray(node.children)) {
+    return;
+  }
+
+  for (let i = 0; i < node.children.length; ) {
+    const child = node.children[i] as Content;
+
+    if (child.type === "paragraph") {
+      const paragraph = child as Paragraph;
+      const closersRemoved = stripClosersFromParagraph(paragraph);
+
+      if (paragraph.children.length === 0) {
+        node.children.splice(i, 1);
+        continue;
+      }
+
+      if (closersRemoved > 0) {
+        const moved = moveParagraphIntoPreviousDirective(node, i, paragraph);
+        if (moved) {
+          // paragraph moved into previous directive, continue without incrementing i
+          continue;
+        }
+      }
+    }
+
+    if (child.type === "text" && isDirectiveCloserValue((child as Text).value ?? "")) {
+      node.children.splice(i, 1);
+      continue;
+    }
+
+    if (isParentNode(child)) {
+      removeDanglingDirectiveClosers(child);
+    }
+
+    i += 1;
+  }
+}
+
+function stripClosersFromParagraph(paragraph: Paragraph): number {
+  if (!Array.isArray(paragraph.children)) {
+    return 0;
+  }
+
+  let totalClosers = 0;
+
+  for (let i = paragraph.children.length - 1; i >= 0; i--) {
+    const child = paragraph.children[i] as Content | undefined;
+    if (!child) continue;
+
+    if (child.type === "break") {
+      paragraph.children.splice(i, 1);
+      continue;
+    }
+
+    if (child.type !== "text") {
+      break;
+    }
+
+    const result = stripClosersFromText((child as Text).value ?? "");
+    totalClosers += result.closers;
+
+    if (result.value.length > 0) {
+      (child as Text).value = result.value;
+      break;
+    }
+
+    paragraph.children.splice(i, 1);
+  }
+
+  return totalClosers;
+}
+
+function stripClosersFromText(value: string): { value: string; closers: number } {
+  let text = value;
+  let closers = 0;
+
+  while (true) {
+    const trimmed = text.replace(/[ \t]+$/, "");
+    if (!trimmed.endsWith(":::")) {
+      break;
+    }
+
+    const withoutCloser = trimmed.slice(0, -3);
+    const withoutNewline = withoutCloser.replace(/\r?\n$/, "");
+    if (withoutCloser === trimmed && withoutNewline === withoutCloser) {
+      // closer was immediately after text with no newline; treat as removed
+      text = withoutCloser;
+    } else {
+      text = withoutNewline;
+    }
+
+    closers += 1;
+  }
+
+  text = text.replace(/\s+$/, "");
+
+  return { value: text, closers };
+}
+
+function moveParagraphIntoPreviousDirective(
+  parent: Parent,
+  index: number,
+  paragraph: Paragraph,
+): boolean {
+  for (let i = index - 1; i >= 0; i--) {
+    const sibling = parent.children?.[i] as Content | undefined;
+    if (!sibling) continue;
+
+    if (sibling.type === "containerDirective") {
+      const container = sibling as Parent;
+      if (!Array.isArray(container.children)) {
+        container.children = [];
+      }
+      container.children.push(paragraph);
+      parent.children?.splice(index, 1);
+      return true;
+    }
+
+    if (sibling.type !== "text" && sibling.type !== "paragraph") {
+      break;
+    }
+  }
+
+  return false;
+}
+
+function isDirectiveCloserValue(value: string): boolean {
+  return value.trim() === ":::";
+}
+
+function isParentNode(node: Content): node is Parent {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "children" in node &&
+    Array.isArray((node as Parent).children)
+  );
 }
