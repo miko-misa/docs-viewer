@@ -6,9 +6,10 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import remarkDirective from "remark-directive";
 import remarkRehype from "remark-rehype";
-import rehypeSlug from "rehype-slug";
 import rehypeTypst from "@myriaddreamin/rehype-typst";
 import rehypeSanitize from "rehype-sanitize";
+import rehypeSlug from "rehype-slug";
+import rehypePrettyCode, { type Options as PrettyCodeOptions } from "rehype-pretty-code";
 import rehypeReact from "rehype-react";
 import {
   HeadingH1,
@@ -23,10 +24,11 @@ import DirectiveWrapper from "../components/DirectiveWrapper";
 import { TypstSvg } from "../components/typst-svg";
 import { CheckIcon } from "../components/CheckIcon";
 import { TaskCheckbox } from "../components/TaskCheckbox";
+import { DiffIcon } from "../components/DiffIcon";
 import type { Plugin } from "unified";
 import type { Parent } from "unist";
 import type { Element, Properties } from "hast";
-import type { Text } from "mdast";
+import type { Text, Code } from "mdast";
 import { visit } from "unist-util-visit";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { jsxDEV } from "react/jsx-dev-runtime";
@@ -81,6 +83,29 @@ function isStandaloneDirectiveCloser(node: unknown): node is Parent {
   // Treat paragraphs consisting solely of directive closers (e.g., :::) as closers.
   return /^:::$/.test(text);
 }
+
+const remarkNormalizeDiffCode: Plugin<[], Parent> = () => (tree: Parent) => {
+  visit(tree, "code", (node: Code) => {
+    const lang = node.lang;
+    if (!lang) return;
+
+    const diffMatch = /^diff[-:+](.+)$/i.exec(lang);
+    if (!diffMatch) return;
+
+    const normalizedLang = diffMatch[1]?.trim();
+    if (!normalizedLang) return;
+
+    node.lang = normalizedLang;
+
+    if (typeof node.meta === "string") {
+      if (!/\bdiff\b/i.test(node.meta)) {
+        node.meta = `${node.meta} diff`.trim();
+      }
+    } else {
+      node.meta = "diff";
+    }
+  });
+};
 
 const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
   visit(tree, (node, index, parent) => {
@@ -272,6 +297,7 @@ const sanitizeSchema: Schema = {
     "style",
     "clipPath",
     "input",
+    "diff-icon",
   ],
   attributes: {
     "*": ["className", "id"],
@@ -288,6 +314,20 @@ const sanitizeSchema: Schema = {
       "data-border-style",
     ],
     img: ["src", "alt", "title", "width", "height"],
+    figure: ["data-rehype-pretty-code-figure"],
+    pre: ["data-language", "data-theme"],
+    code: ["data-language", "data-theme", "style"],
+    span: [
+      "data-line",
+      "data-line-start",
+      "data-line-end",
+      "data-highlighted",
+      "data-diff",
+      "data-diff-symbol",
+      "data-line-number",
+      "style",
+    ],
+    "diff-icon": ["type"],
     "task-checkbox": ["checked"],
     svg: [
       "className",
@@ -330,6 +370,157 @@ const sanitizeSchema: Schema = {
   clobberPrefix: "",
 };
 
+function findDiffIndicator(
+  node: Element | { value?: string; children?: unknown[] } | undefined,
+): string | null {
+  if (!node) return null;
+  if ("value" in node && typeof node.value === "string" && node.value.length > 0) {
+    const first = node.value[0];
+    if (first === "+" || first === "-") {
+      return first;
+    }
+  }
+  if ("children" in node && Array.isArray(node.children)) {
+    for (const child of node.children) {
+      const indicator = findDiffIndicator(child as Element);
+      if (indicator) return indicator;
+    }
+  }
+  return null;
+}
+
+function stripDiffIndicator(
+  node: Element | { value?: string; children?: unknown[] },
+  indicator: string,
+): boolean {
+  if (!node) return false;
+  if ("value" in node && typeof node.value === "string" && node.value.length > 0) {
+    const value = node.value;
+    if (value.startsWith(indicator)) {
+      let trimmed = value.slice(1);
+      if (trimmed.startsWith(" ")) {
+        trimmed = trimmed.slice(1);
+      }
+      node.value = trimmed;
+      return true;
+    }
+    if (value === indicator) {
+      node.value = "";
+      return true;
+    }
+  }
+  if ("children" in node && Array.isArray(node.children)) {
+    for (const child of node.children) {
+      if (stripDiffIndicator(child as Element, indicator)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+const rehypePrettyCodeOptions: PrettyCodeOptions = {
+  theme: {
+    light: "github-light",
+    dark: "github-dark",
+  },
+  keepBackground: false,
+  defaultLang: "plaintext",
+  onVisitLine(element) {
+    element.properties = element.properties ?? {};
+    const props = element.properties as Properties & { className?: unknown };
+    const classList = new Set<string>();
+    const existing = props.className;
+    if (Array.isArray(existing)) {
+      for (const value of existing) {
+        if (typeof value === "string") classList.add(value);
+      }
+    } else if (typeof existing === "string") {
+      for (const token of existing.split(/\s+/)) {
+        if (token) classList.add(token);
+      }
+    }
+    classList.add("line");
+    props.className = Array.from(classList);
+  },
+  onVisitHighlightedLine(element) {
+    element.properties = element.properties ?? {};
+    (element.properties as Properties)["data-highlighted"] = "true";
+  },
+};
+
+const rehypeEnhanceCodeBlocks: Plugin<[], Parent> = () => (tree: Parent) => {
+  visit(tree, "element", (node) => {
+    const pre = node as Element & Parent;
+    if (pre.tagName !== "pre") return;
+
+    const code = pre.children.find(
+      (child): child is Element & Parent =>
+        child.type === "element" && (child as Element).tagName === "code",
+    );
+
+    if (!code) return;
+
+    const languageRaw = pre.properties?.["data-language"];
+    const language = typeof languageRaw === "string" ? languageRaw.toLowerCase() : "";
+
+    const codeProperties = (code.properties ?? {}) as Properties & { metastring?: unknown };
+    const codeData = (code.data ?? {}) as { meta?: unknown };
+    const codeMetaRaw =
+      typeof codeData.meta === "string"
+        ? codeData.meta
+        : typeof codeProperties.metastring === "string"
+          ? String(codeProperties.metastring)
+          : undefined;
+    const hasDiffMeta = typeof codeMetaRaw === "string" ? /\bdiff\b/i.test(codeMetaRaw) : false;
+
+    const isDiff = language === "diff" || hasDiffMeta;
+
+    let hasDiff = false;
+    for (const child of code.children) {
+      if (child.type !== "element") continue;
+      const line = child as Element & Parent;
+      if (line.tagName !== "span") continue;
+
+      line.properties = line.properties ?? {};
+      const props = line.properties as Properties & { className?: unknown };
+
+      if (isDiff) {
+        const indicator = findDiffIndicator(line);
+        if (indicator && stripDiffIndicator(line, indicator)) {
+          hasDiff = true;
+          props["data-diff"] = indicator === "+" ? "add" : "remove";
+          props["data-diff-symbol"] = indicator;
+          const iconElement: Element = {
+            type: "element",
+            tagName: "diff-icon",
+            properties: { type: indicator === "+" ? "add" : "remove" },
+            children: [],
+          };
+          line.children.unshift(iconElement as unknown as Parent["children"][number]);
+        }
+      }
+    }
+
+    if (isDiff && !hasDiff) {
+      visit(code, "element", (line) => {
+        const element = line as Element;
+        if (element.tagName !== "span") return;
+        const props = element.properties as Properties | undefined;
+        if (props) {
+          delete props["data-diff"];
+          delete props["data-diff-symbol"];
+        }
+      });
+    }
+
+    code.children = code.children.filter((child) => {
+      if (child.type !== "text") return true;
+      const value = (child as { value?: string }).value ?? "";
+      return value.trim().length > 0;
+    });
+  });
+};
 export async function renderMarkdown(markdown: string): Promise<ReactNode> {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -342,11 +533,14 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkGfm)
     .use(remarkBreaks)
     .use(remarkDirective)
+    .use(remarkNormalizeDiffCode)
     .use(remarkTransformDirectives)
     .use(remarkCollectLabels, { labelIndex })
     .use(remarkResolveReferences, { labelIndex })
     .use(remarkAnnotations, { labelIndex })
     .use(remarkRehype, { allowDangerousHtml: false })
+    .use(rehypePrettyCode, rehypePrettyCodeOptions)
+    .use(rehypeEnhanceCodeBlocks)
     .use(rehypeSlug)
     .use(rehypeTypst, {
       // Typstのレンダリングオプション
@@ -379,6 +573,7 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
         "task-checkbox": (props: { checked?: string }) => (
           <TaskCheckbox checked={props.checked === "true"} />
         ),
+        "diff-icon": DiffIcon,
       },
     })
     .process(markdown);

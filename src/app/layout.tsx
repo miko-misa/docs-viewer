@@ -1,18 +1,29 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Sans_JP, JetBrains_Mono, M_PLUS_1_Code } from "next/font/google";
 import "./globals.css";
 import { PreviewProvider } from "@/contexts/PreviewContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const notoSans = Noto_Sans_JP({
+  variable: "--font-noto-sans",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "700"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin", "latin-ext"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
+const mPlusCode = M_PLUS_1_Code({
+  variable: "--font-mplus1-code",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -48,7 +59,7 @@ export default function RootLayout({
           {themeInitScript}
         </Script>
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${notoSans.variable} ${jetBrainsMono.variable} ${mPlusCode.variable} antialiased`}>
         <ThemeProvider>
           <PreviewProvider>{children}</PreviewProvider>
         </ThemeProvider>
