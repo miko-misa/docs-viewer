@@ -1,4 +1,15 @@
-import type { Root, Parent, Content, Heading, List, ListItem, Text, Paragraph } from "mdast";
+import type {
+  Root,
+  Parent,
+  Content,
+  Heading,
+  List,
+  ListItem,
+  Text,
+  Paragraph,
+  BlockContent,
+  DefinitionContent,
+} from "mdast";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 import { LabelIndex } from "./refs";
@@ -164,11 +175,11 @@ function hasBlankLineBetween(
 }
 
 function appendMarkerToParagraph(paragraph: Paragraph, marker: Content) {
-  paragraph.children.push(marker);
+  paragraph.children.push(marker as unknown as Paragraph["children"][number]);
 }
 
 function prependMarkerToParagraph(paragraph: Paragraph, marker: Content) {
-  paragraph.children.unshift(marker);
+  paragraph.children.unshift(marker as unknown as Paragraph["children"][number]);
   trimLeadingWhitespace(paragraph);
 }
 
@@ -227,7 +238,7 @@ function appendAnnotationSection(tree: Root, annotations: AnnotationInfo[]) {
         className: ["annotation-entry"],
       },
     },
-    children: cloneNodes(annotation.content),
+    children: cloneNodes(annotation.content) as unknown as (BlockContent | DefinitionContent)[],
   }));
 
   const list: List = {
@@ -411,7 +422,7 @@ function isDirectiveCloserValue(value: string): boolean {
   return value.trim() === ":::";
 }
 
-function isParentNode(node: Content): node is Parent {
+function isParentNode(node: Content): node is Content & Parent {
   return (
     typeof node === "object" &&
     node !== null &&
