@@ -4,6 +4,6 @@ description: >-
 tags:
   - info-logic
 order:
-  - intro
   - set-relation
   - prop-define
+  - semantic-func

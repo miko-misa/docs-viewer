@@ -361,7 +361,7 @@ $$
 
 :::
 
-:::column
+:::column-toc
 (lem-cantor-set)=
 @title: 【補題】カントール集合の 3 進展開の一意性
 
