@@ -96,7 +96,7 @@ docs/
   - `remarkNormalizeDiffCode` が `diff-<lang>` / `diff:<lang>` 形式のコードフェンスを通常の言語＋`diff` メタへ正規化し、シンタックスカラーと差分背景を両立
   - カスタム `remarkTransformDirectives` が `column`/`column-toc` のメタ行整理・`:::` クローズ行の再配置を実施
    - `LabelIndex` を共有しながら `remarkCollectLabels`（見出し＋column ラベル収集）→ `remarkResolveReferences`（`@label` → `RefLink` 化）→ `remarkAnnotations`（`:::annotation` を抽出し本文末尾へ集約）
-  - `remark-rehype`（HTML は危険許可なし）→ `rehype-pretty-code`（Shiki ベースのシンタックスハイライト）→ `rehype-slug` → `rehype-typst`（Typst 数式を SVG 化）→ カスタム rehype プラグイン（Typst スタイル保持、チェックマーク/タスクリストの独自要素化）→ `rehype-sanitize`（スキーマは §6）
+  - `remark-rehype`（HTML は危険許可なし）→ `rehype-pretty-code`（Shiki ベースのシンタックスハイライト）→ `rehypeEnhanceCodeBlocks`（diff 行の抽出・アイコン注入）→ `rehype-slug` → `rehype-typst`（Typst 数式を SVG 化）→ カスタム rehype プラグイン（Typst スタイル保持、チェックマーク/タスクリストの独自要素化）→ `rehype-sanitize`（スキーマは §6）
 4. **React 化**:
    - `rehype-react` で React ノードへ変換し、`RefLink` / `DirectiveWrapper` / `TypstSvg` / `HeadingH*` などのコンポーネントに差し替え
    - 生成物は RSC 側で `DocLayout` / `GroupLayout` に渡し、UI レイヤーで TOC やプレビュー制御を行う
@@ -283,7 +283,7 @@ export interface LabelInfo {
 - `rehype-pretty-code`（Shiki）を使用し、サーバーレンダリング時にコードブロックへハイライトを適用。
 - テーマ: ライトモード `github-light` / ダークモード `github-dark`。`keepBackground: false` で背景色は CSS 側で統一。
 - 行ハイライト: フェンス記法のメタデータ（例: \`\`\`ts {1,4-5}\`\`\`）を remark 側で解析し、該当行に `data-highlighted` を付与。CSS で背景色を変更。
-- 差分表示: コードブロックが `diff` 言語、またはメタに `diff` を含む場合（例: `ts` フェンスに `diff` を付ける、`diff-ts` 形式など）は、先頭の `+`/`-` を除去して `data-diff="add|remove"` と `data-diff-symbol` を保持。
+- 差分表示: コードブロックが `diff` 言語、またはメタに `diff` を含む場合（例: `ts` フェンスに `diff` を付ける、`diff-ts` 形式など）は、`rehypeEnhanceCodeBlocks` が先頭の `+`/`-` を除去して `data-diff="add|remove"` と `data-diff-symbol` を付与。
   - lucide-react の `Plus`/`Minus` アイコンを専用要素（`<diff-icon>`）で描画。
   - コピー時には記号を除去したコードのみが取得される。
 - サニタイズ許可属性: `data-language`, `data-theme`, `data-line`, `data-highlighted`, `data-diff`, `data-diff-symbol`, `style`（コードトークン用）などを追加（§6参照）。
@@ -425,7 +425,7 @@ src/
     DirectiveWrapper.tsx
     typst-svg.tsx
     PreviewModeMenu.tsx
-    TaskCheckbox.tsx / CheckIcon.tsx
+    TaskCheckbox.tsx / CheckIcon.tsx / DiffIcon.tsx
   contexts/
     PreviewContext.tsx  // プレビュー表示モード（inline/floating）
     ThemeContext.tsx    // data-theme と localStorage 管理
@@ -451,14 +451,20 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkGfm)
     .use(remarkBreaks)
     .use(remarkDirective)
-  .use(remarkNormalizeDiffCode)
+    .use(remarkNormalizeDiffCode)
     .use(remarkTransformDirectives)
     .use(remarkCollectLabels, { labelIndex })
     .use(remarkResolveReferences, { labelIndex })
     .use(remarkAnnotations, { labelIndex })
     .use(remarkRehype, { allowDangerousHtml: false })
+    .use(rehypePrettyCode, rehypePrettyCodeOptions)
+    .use(rehypeEnhanceCodeBlocks)
     .use(rehypeSlug)
-    .use(rehypeTypst, { renderOptions: { format: "svg" } })
+    .use(rehypeTypst, {
+      renderOptions: {
+        format: "svg",
+      },
+    })
     .use(enforceInlineMathRendering)
     .use(preserveTypstStyles)
     .use(replaceCheckmarks)
@@ -484,6 +490,7 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
         "task-checkbox": (props: { checked?: string }) => (
           <TaskCheckbox checked={props.checked === "true"} />
         ),
+        "diff-icon": DiffIcon,
       },
     })
     .process(markdown);
@@ -506,7 +513,6 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
 ## 15. 今後の拡張
 
 - **全文検索**（静的インデックス or サーバ検索）
-- **コードハイライト**（Shiki + ダーク/ライト自動切替）
 - **外部引用/参考文献**（BibTeX / CSL 対応）
 - **差分プレビュー**（GitHub PR と連携）
 
