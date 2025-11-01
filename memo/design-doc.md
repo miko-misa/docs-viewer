@@ -7,26 +7,28 @@
 
 ## 0. 採用技術と主要ライブラリ
 
-- フレームワーク: **Next.js（App Router）** / TypeScript / React 18 以上。ルーティングは `app/[[...slug]]` の**キャッチオール動的ルート**で実装。 ([nextjs.org][1])
-- スタイル: **Tailwind CSS**（プレーン HTML にも馴染むユーティリティ設計、preflight を前提に Markdown スタイルはカスタムで当てる）
+- フレームワーク: **Next.js 16（App Router）** / TypeScript / **React 19**。`app/[[...slug]]` のキャッチオール動的ルートで Markdown を配信し、**React Compiler** を有効化。 ([nextjs.org][1])
+- スタイル: **Tailwind CSS v4** をベースに、`src/app/globals.css` でテーマ変数・Markdown 用レイアウトを細かく定義（ライト/ダークの `data-theme` スイッチを前提）。
 - Markdown パイプライン（unified 系）:
-  - **remark-parse / remark-gfm**（GitHub Flavored Markdown）
-  - **remark-directive**（拡張ディレクティブの構文; `:::` コンテナ、`:text[]` など） ([GitHub][2])
-  - **remark → rehype 変換**（**remark-rehype**） ([unified][3])
-  - **Typst 数式**: **typst.ts** + **rehype-typst**（Typst 記法 `$ ... $` をブラウザ/サーバで描画） ([GitHub][4])
-  - **rehype-sanitize**（XSS 対策; 允许するタグ/属性を厳密にホワイトリスト化） ([GitHub][5])
-  - **rehype-react** もしくは **react-markdown**（HAST→React 要素化と、要素毎のコンポーネント差し替え） ([GitHub][6])
-
+  - **remark-parse / remark-gfm / remark-math / remark-breaks**
+  - **remark-directive** + カスタムの `remarkTransformDirectives`（`:::` コンテナのメタデータ抽出と閉じタグ補正） ([GitHub][2])
+  - ラベル・参照・注釈: `remarkCollectLabels` → `remarkResolveReferences` → `remarkAnnotations`（`LabelIndex` を共有）
+  - **remark-rehype**（`allowDangerousHtml: false`）→ `rehype-slug` → **rehype-typst**（SVG 出力）→ カスタム変換（Typst スタイル復元、チェックボックス差し替え）→ **rehype-sanitize**（専用スキーマ）→ **rehype-react**
+  - React マッピング: `a`→`RefLink`, `div.directive-*`→`DirectiveWrapper`, `svg.typst-doc`→`TypstSvg`, `task-checkbox`→`TaskCheckbox`
 - UI コンポーネント:
-  - 固定 TOC & スクロールスパイ: **IntersectionObserver API**（見出し交差監視） ([MDNウェブドキュメント][7])
-  - 参照プレビュー: **Popover**（Radix UI など）と **floating-ui** によるポジショニング ([GitHub Docs][8])
+  - **DocHeader**: スクロール量を補間する sticky ヘッダー（グループタイトル・タグ・更新日時を表示／自動縮小）
+  - **Toc**: IntersectionObserver + スコアリングでアクティブ項目を計算し、必要に応じて自己スクロール ([MDNウェブドキュメント][7])
+  - **RefLink**: 参照クリック時に DOM クローンを用いたプレビューウィンドウを生成。`PreviewModeMenu` から **フローティング／インライン切り替え** とネストプレビューに対応
+  - **PreviewModeMenu / ThemeProvider**: ローカルストレージに保存するプレビュー表示モードとライト/ダークテーマの切り替え UI
 
 - デプロイ／同期:
   - **Vercel × GitHub 連携**（main ブランチの push で自動デプロイ） ([Vercel][9])
   - **Deploy Hooks** または Next.js の **`revalidateTag()`** によるオンデマンド再検証（ISR / Data Cache） ([Vercel][10])
 
-- コンテンツ取得（ランタイム or ビルド）:
-  - GitHub REST API: **Get repository content / Get a tree**、ETag による**条件付きリクエスト**で効率化。 ([GitHub Docs][11])
+- コンテンツ取得:
+  - サーバー側で `node:fs` と `gray-matter` を使い、`process.cwd()/docs` 配下の Markdown を直接読み込み
+  - ディレクトリ毎の **`config.yaml`** を `js-yaml` で解析し、タイトル・説明・タグ・並び順を供給
+  - `DocRecord` はファイル更新日時 (`stat.mtime`) を保持し、UI の「最終更新」に利用
 
 ---
 
@@ -46,7 +48,7 @@ docs/
 ```
 
 - **拡張子**: `.md` 固定（MDX は使わない）
-- **相対参照**: 画像・ファイルは同階層相対パスを許可（GitHub Raw 経由で配信）
+- **相対参照**: 画像・ファイルは同階層相対パスを許可（Next.js の静的アセットとして提供）
 
 ### 1.2 サイト URL（出力）
 
@@ -60,27 +62,53 @@ docs/
 
 - Next.js 実装は `app/[[...slug]]/page.tsx` の**キャッチオール**で実現。 ([nextjs.org][1])
 
+### 1.3 メタデータと補助ファイル
+
+- **Markdown フロントマター**（`gray-matter`）:
+  - 各 `.md` の先頭に YAML フロントマターを記述可能（`title`, `tags` をサポート）
+  - グループ外の単独ページではフロントマターの `tags` を UI 表示にそのまま利用
+  - グループ配下のページは、フロントマターよりもディレクトリ側 `config.yaml` のタグを優先
+- **ディレクトリ構成メタ (`config.yaml`)**:
+  - 置き場所: 該当ディレクトリ直下（例: `docs/info-logic/config.yaml`）
+  - フィールド: `title`, `description`, `tags`, `order`（いずれも任意）
+    - `order`: ディレクトリ基準の相対スラッグ（`.md` 拡張子不要）を列挙。未指定のファイルは残りをスラッグ昇順で補完
+    - `tags`: グループ詳細ページおよび配下ドキュメントのタグ表示に使用
+  - `GroupLayout` は `config.yaml` のメタと `getDocPreview` で集計した `lastModified` を用いて一覧を構築
+- **ナビゲーション**:
+  - `order` を基に、本文末尾で「前へ / 次へ」ナビゲーションを生成（存在しないファイルは自動的にスキップ）
+  - グループ直下スラッグにアクセスした場合は `GroupLayout`（一覧ページ）を表示し、`BackLink` から上位へ戻れる
+
 ---
 
 ## 2. レンダリング・パイプライン（サーバ優先 / クライアント最小）
 
 ### 2.1 フロー概要
 
-1. **取得**: GitHub API で Markdown を取得（Conditional GET / ETag 対応） ([GitHub Docs][11])
-2. **パース**: remark-parse + remark-gfm
-3. **拡張構文**: remark-directive（コンテナ/ラベル/参照のカスタムノード生成） ([GitHub][2])
-4. **Typst 数式**: rehype-typst（typst.ts を使って SVG/HTML へ）※詳細は §3 ([Hanwen][12])
-5. **サニタイズ**: rehype-sanitize（許可要素・属性・クラスを限定） ([GitHub][5])
-6. **React 化**: rehype-react または react-markdown で**要素分解**して React コンポーネントにマッピング。 ([GitHub][6])
+1. **ローカル読み込み (`getDocBySlug`)**:
+   - `normalizeSlug` でスラッグ調整 → `index.md` と `<slug>.md` を優先順に探索
+   - `fs.promises.readFile` / `fs.promises.stat` で本文と最終更新時刻を取得、Path 走査は `assertInsideDocsRoot` でディレクトリトラバーサルを防止
+2. **メタ情報の解決**:
+   - `gray-matter` でフロントマターを解析し、本文は `content` として保持
+   - `readGroupConfig` が同階層の `config.yaml` を `js-yaml` 経由で読み込み、ディレクトリ単位の `title / description / tags / order` を付与
+   - グループ配下ドキュメントでは `tags` をグループ設定から継承し、単独ドキュメントはフロントマターの `tags` をそのまま利用
+3. **Markdown 変換 (`renderMarkdown`)**:
+   - `remark-parse` → `remark-math` → `remark-gfm` → `remark-breaks` → `remark-directive`
+   - カスタム `remarkTransformDirectives` が `column`/`column-toc` のメタ行整理・`:::` クローズ行の再配置を実施
+   - `LabelIndex` を共有しながら `remarkCollectLabels`（見出し＋column ラベル収集）→ `remarkResolveReferences`（`@label` → `RefLink` 化）→ `remarkAnnotations`（`:::annotation` を抽出し本文末尾へ集約）
+   - `remark-rehype`（HTML は危険許可なし）→ `rehype-slug` → `rehype-typst`（Typst 数式を SVG 化）→ カスタム rehype プラグイン（Typst スタイル保持、チェックマーク/タスクリストの独自要素化）→ `rehype-sanitize`（スキーマは §6）
+4. **React 化**:
+   - `rehype-react` で React ノードへ変換し、`RefLink` / `DirectiveWrapper` / `TypstSvg` / `HeadingH*` などのコンポーネントに差し替え
+   - 生成物は RSC 側で `DocLayout` / `GroupLayout` に渡し、UI レイヤーで TOC やプレビュー制御を行う
 
-> セキュアな HTML 取り込みのため、`rehype-raw` を使う場合は **必ず** `rehype-sanitize` を併用（XSS 回避）。 ([Yarn][13])
+> `rehype-raw` は使用していないため、外部 HTML の持ち込みは常時遮断される。 ([Yarn][13])
 
 ### 2.2 HTML 要素の分解（カスタムマップ）
 
-- `h1..h6` → `<Heading level={n} id=... />`（自動 slug 付与 & 見出し番号オプション）
-- `p`, `ul/ol/li`, `table` など→ 素のタグ or ラップコンポーネント
-- `code`（ブロック）→ シンタックスハイライト（Shiki 等は将来拡張）
-- コンテナ（column）→ `<DirectiveWrapper>` で柔軟なスタイリング対応
+- `h1..h6` → `HeadingHx`（ハッシュ装飾付き）。`rehype-slug` が付与した ID を保持し TOC のアンカーに利用
+- `a[data-ref=*]` → `RefLink`（参照プレビュー制御。一般リンクは通常の `<a>` として渡される）
+- `div.directive-*` → `DirectiveWrapper`（column / column-toc / annotation など）
+- `svg.typst-doc` → `TypstSvg`（`data-typst-style` を inline `style` に復元、ライト/ダークテーマと同期）
+- `task-checkbox`（タスクリスト）→ `TaskCheckbox`（`lucide-react` アイコン表示）
 
 ---
 
@@ -95,114 +123,62 @@ docs/
 
 > typst.ts はブラウザ/サーバで Typst を動作させ、SVG/HTML に描画可能。React 連携も用意。 ([Myriad Dreamin'][15])
 
-### 3.2 ラベルと参照（TeX/Typst 風）
+### 3.2 ラベルと参照
 
-#### 3.2.1 基本概念
+#### 3.2.1 ラベル記法
 
-ドキュメント内の要素（見出し、column、数式など）にラベルを付与し、`@label-name` 記法で参照する。
+- **見出し**: `(label-id)=` を先頭に置く。
+  ```md
+  ## (sec-valuation)= 付値
+  ```
+  `remarkCollectLabels` が `(sec-valuation)=` を除去し、ID を `rehype-slug` の結果に上書きしてアンカーとする。
+- **column / column-toc**:
+  ```md
+  :::column
+  (col-basic)=
+  @title: シンプルなコラム
+  本文...
+  :::
+  ```
+  - `@title`, `@color`, `@background`, `@border-*` は `DirectiveWrapper` の `data-*` に変換される。
+  - ラベルは `(label)=` 行もしくは `label` 属性で指定可能。`remarkTransformDirectives` が本文から除去する。
+- **注釈 (`:::annotation`)**: 自動で `annotation-1`, `annotation-2` … の ID が振られる。
 
-#### 3.2.2 ラベル付与の方法
+#### 3.2.2 参照記法
 
-**方法1: ディレクティブ属性（推奨）**
-```md
-:::column{#thm-pythagoras}
-@title:定理 1.2 ピタゴラスの定理
+- `@label-id` で参照リンクを挿入。`[任意テキスト](@label-id)` でリンクテキストを上書き可能。
+- デフォルトのリンクテキスト:
+  - 見出し → ラベル記法を除いた見出し本文
+  - column / column-toc → `@title:` の値（未指定時は最初の本文テキスト）
+  - 注釈 → `注釈 n`
 
-直角三角形において、斜辺の長さの2乗は他の2辺の長さの2乗の和に等しい。
-:::
-```
+#### 3.2.3 プレビュー挙動
 
-**方法2: 見出しの属性**
-```md
-## 群論の基礎 {#sec-group-theory}
-```
+- `RefLink` がクリックを横取りし、参照先の DOM をクローンしてプレビュー表示。
+- **フローティングモード**: 本文右側に小窓を出し、既存ウィンドウとの衝突を避けて再配置。複数階層のプレビューに対応。
+- **インラインモード**: 参照リンク直下に差し込み。1280px 未満では自動的にこちらを強制。
+- プレビュー内の参照リンクも `RefLink` として再帰的に動作し、子ウィンドウを開ける。`Jump` ボタンで本体へスクロール。
 
-**ラベル命名規則:**
-- 接頭辞推奨: `thm-` (定理), `def-` (定義), `sec-` (セクション), `fig-` (図), `eq-` (数式)
-- 例: `#thm-pythagoras`, `#sec-introduction`, `#fig-diagram-1`
+#### 3.2.4 実装フロー
 
-#### 3.2.3 参照記法
+1. `remarkCollectLabels` がラベルを解析し、`LabelIndex` に `LabelInfo` を登録。
+2. `remarkResolveReferences` が `@label` 記法を `<a>` ノードへ変換し、`href="\#elementId"` と `data-ref-*` をセット。
+3. `remarkAnnotations` が `:::annotation` を処理して本文側にマーカー、末尾に注釈リストを追加。
+4. クライアント側 `RefLink` がクリックでプレビューを開閉し、開いているリンクに `.ref-link-active` クラスを付与。
 
-**基本構文:**
-```md
-@thm-pythagoras を参照してください。
-詳細は @sec-group-theory を参照。
-```
+#### 3.2.5 ラベルインデックス
 
-**参照の展開:**
-- `@thm-pythagoras` → `<a href="#thm-pythagoras">定理 1.2</a>`
-- `@sec-introduction` → `<a href="#sec-introduction">§1.1</a>`
-- 参照先のタイトルを自動取得して表示
-
-**カスタムテキスト:**
-```md
-[こちら](@thm-pythagoras) を参照
-```
-→ `<a href="#thm-pythagoras">こちら</a>`
-
-#### 3.2.4 参照プレビュー（Peek機能）
-
-- 参照リンクをクリック → ページ遷移せずポップオーバーで内容プレビュー
-- プレビュー内容: 参照先の見出し/タイトル + 最初の段落または要約
-- 実装: Radix UI Popover + floating-ui
-- "参照先へジャンプ" ボタンでページ内遷移可能
-
-#### 3.2.5 実装の流れ
-
-1. **ラベル収集フェーズ（remarkプラグイン）**:
-   - Markdownをパースして全ラベルを収集
-   - ラベル→要素情報のマップを構築
-   - 見出し、column、数式などからラベルを抽出
-
-2. **参照解決フェーズ（remarkプラグイン）**:
-   - テキスト中の `@label-name` を検出
-   - ラベルマップを参照して対応する要素を特定
-   - リンクノードに変換（`href`, `data-ref-type`, `data-ref-target` 属性を付与）
-
-3. **レンダリングフェーズ（Reactコンポーネント）**:
-   - `RefLink` コンポーネントで参照リンクを描画
-   - ホバー/クリック時にプレビュー表示
-   - 参照先タイトルの表示
-
-#### 3.2.6 番号付けシステム
-
-**自動番号付け:**
-- 見出し: `§1.1`, `§2.3` など（章番号.節番号）
-- column（定理など）: ラベル接頭辞に基づいて自動採番
-  - `thm-*` → "定理 1", "定理 2", ...
-  - `def-*` → "定義 1", "定義 2", ...
-  - 接頭辞なし → 番号なし、タイトルのみ
-
-**番号のリセット:**
-- デフォルト: 文書全体で通し番号
-- オプション: H2（章）ごとにリセット可能
-
-#### 3.2.7 データ構造
-
-**ラベルインデックス（lib/refs.ts）:**
-```typescript
-type LabelInfo = {
-  id: string;           // ラベル名（例: "thm-pythagoras"）
-  type: 'heading' | 'column' | 'equation';
-  title: string;        // 表示テキスト（例: "定理 1.2 ピタゴラスの定理"）
-  number?: string;      // 自動番号（例: "1.2"）
-  prefix?: string;      // 接頭辞（例: "thm"）
-  position: number;     // ドキュメント内の位置（順序）
-};
-
-type LabelIndex = Map<string, LabelInfo>;
-```
-
-**参照ノードの属性:**
-```typescript
-{
-  href: `#${labelId}`,
-  'data-ref-target': labelId,
-  'data-ref-type': type,
-  'data-ref-title': title,
+```ts
+// src/lib/refs.ts
+export interface LabelInfo {
+  id: string;
+  type: "heading" | "column" | "annotation";
+  title: string;
+  elementId: string;
+  summary?: string; // 注釈一覧用
 }
 ```
-
+`LabelIndex` は `Map<string, LabelInfo>` として構築され、`renderMarkdown` 内のプラグイン間で共有される。
 ### 3.3 注釈（Annotations）
 
 - **目的**: 本文中に長文の注釈を紐付ける。本文中には軽量なマーカーを表示し、ページ下部に注釈本文をまとめて表示する。
@@ -238,427 +214,279 @@ type LabelIndex = Map<string, LabelInfo>;
   - 下部注釈リスト: `section.annotations` 内で番号付きリスト表示、各項目にマーカーと同じ番号。
   - ポップアップ: 既存 `RefLink` レイアウトを使用し、注釈が長い場合はスクロール可。
 
-### 3.4 コンテナディレクティブ（column による統一）
+### 3.4 コンテナディレクティブ（column 系）
 
-すべてのコンテナ（定理、証明、コラムなど）は `:::column` ディレクティブで統一する。
+拡張コンテナ（定理・証明・コラム・補足など）は `:::column` 系ディレクティブで統一する。`column-toc` を使うと目次にも掲載できる。
 
 - **構文（remark-directive）**:
 
   ```md
   :::column
-  @title:定理 1.2
-  @color:#3b82f6
-  @background:#eff6ff
-  
-  直角三角形において、斜辺の長さの2乗は他の2辺の長さの2乗の和に等しい。
+  (col-basic)=
+  @title: 補足
+  @background: #eff6ff
+  @border-color: #2563eb
+
+  本文...
   :::
-  
-  :::column
-  @title:証明
-  @color:#10b981
-  
-  証明本文…
+
+  :::column-toc
+  @title: TOC に出す補足
+  (col-in-toc)=
+  @background: #fef3c7
+
+  本文...
   :::
   ```
 
-- **柔軟性**: `@title`, `@color`, `@background`, `@border-*` などのメタデータでスタイルを自由にカスタマイズ
-- **ラベルと参照**: `:label:` 属性を付ければ `@label-name` で参照可能（§3.2参照）
-- **TOC統合**: `:::column-toc` を使用すればTOCに表示される
+#### 3.4.1 メタデータとパラメータ
 
-#### 3.3.1 コラムディレクティブの拡張仕様
+- `@title`（任意 / `column-toc` では必須）
+- `@title-color`, `@color`, `@background`
+- `@border-color`, `@border-width`, `@border-style`
+- ラベルは `(label-id)=` 行または `label:` 属性で指定可能（§3.2）
 
-コラムディレクティブは、タイトル・背景色・ボーダーのカスタマイズが可能な柔軟な構文をサポートする。
+#### 3.4.2 表示仕様
 
-**基本構文:**
-```md
-:::{column}
-@title:タイトル
-@title-color:タイトルテキストの色
-@color:タイトル帯の背景色
-@background:コンテンツ部分の背景色
-@border-color:ボーダーの色
-@border-width:ボーダーの太さ
-@border-style:ボーダーのスタイル
+- タイトル帯は `DirectiveWrapper` が自動描画（デフォルト配色: タイトル帯 = `#cbd5e1`, ボーダー = `#cbd5e1`, テキスト = `#1f2937`）。
+- `@border-color` が省略された場合でも、タイトルがあると 2px の淡色ボーダーを描画。`@title` も `@border-color` も無い場合はボーダー無し。
+- コンテンツ高さが `50vh` を超えると自動的に折りたたみ、フェードと「すべて表示 / 折りたたむ」ボタンを表示。
+  - 折りたたみ状態はプレビュー内の `DirectiveWrapper` でも共有。
+- `column-toc` は `@title` から `github-slugger` で ID を生成し、TOC に **レベル 4** の項目として追加。
 
-内容
-:::
-```
+#### 3.4.3 実装メモ
 
-**ディレクティブの種類:**
-- **`:::column`**: 通常のコラム（TOCに表示されない）
-- **`:::column-toc`**: TOCに表示されるコラム（タイトルが必須、クリックでナビゲーション可能）
+- **remarkTransformDirectives**（`src/lib/markdown.tsx`）
+  - `column` / `column-toc` を検出し、メタ情報を `data-*` 属性へ移し替え。
+  - `(label)=` 行や `@xxx:` 行を本文から除去しつつ `directive.data.directiveTitle` に保存。
+  - 独立した `:::` 行（クローザ）を適切な位置に再配置。
 
-> **注意**: `:::column*` のようなアスタリスク記法は remark-directive で無効なため、`:::column-toc` を使用すること。
+- **TOC 抽出**（`src/lib/toc.ts`）
+  - `:::column-toc` 開始行と `@title:` 行を解析し、`slug()` で ID を生成。
+  - `level: 4` の TOC 項目として追加し、リンクテキストには `@title` を使用。
 
-**パラメータ:**
-- **@title**: コラムの見出しテキスト（省略可能、省略時はタイトル帯なし）
-  - `column-toc` では必須（TOCのテキストとして使用）
-- **@title-color**: タイトルテキストの色（CSSカラー値、デフォルト: `#1f2937`）
-- **@color**: タイトル帯の背景色（CSSカラー値、デフォルト: `#cbd5e1` 灰色）
-- **@background**: コンテンツ部分の背景色（CSSカラー値、省略時は透過）
-- **@border-color**: ボーダーの色（CSSカラー値、明示的に指定した場合のみ表示）
-- **@border-width**: ボーダーの太さ（CSS単位、デフォルト: `2px`）
-- **@border-style**: ボーダーのスタイル（`solid`, `dashed`, `dotted` など、デフォルト: `solid`）
+- **DirectiveWrapper**（`src/components/DirectiveWrapper.tsx`）
+  - `data-title` などの属性を参照しタイトル帯・背景色・ボーダーを描画。
+  - `ResizeObserver` と `window` リサイズを監視して折りたたみ判定を更新。
+  - プレビューウィンドウ内でも同じ挙動になるよう、ボタンラベルやスクロール位置の復元を管理。
 
-**使用例:**
-```md
-:::{column}
-@title:重要な補足
-@color:#3b82f6
-@background:#eff6ff
-@border-color:#2563eb
+- **サニタイズスキーマ**
+  - `div.directive*` に対して `data-title`, `data-title-color`, `data-color`, `data-background`,
+    `data-border-color`, `data-border-width`, `data-border-style`, `data-name`, `data-value` を許可。
 
-青い帯と淡い青の背景、濃い青のボーダー
-:::
-
-:::{column-toc}
-@title:TOCに表示される列
-@border-color:#10b981
-@color:#d1fae5
-
-このコラムはTOCに表示され、クリックで遷移できます。
-:::
-
-:::{column}
-@title:注意事項
-@border-color:#ef4444
-@border-width:3px
-@border-style:dashed
-
-赤の破線ボーダー（太さ3px）
-:::
-
-:::{column}
-@title:デフォルトスタイル
-
-タイトルのみ指定（灰色の背景とボーダーがデフォルト適用）
-:::
-
-:::{column}
-@background:#f3f4f6
-
-タイトルなしのシンプルなコンテナ（ボーダーなし）
-:::
-```
-
-**レンダリング仕様:**
-- コンテンツの先頭にある `@xxx:` 行を検出・抽出
-- タイトルが指定されている場合:
-  - タイトル帯: `background-color: @color`（デフォルト `#cbd5e1`）、`color: @title-color`（デフォルト `#1f2937`）
-  - コンテンツ: `background-color: @background`
-  - ボーダー: `@border-color` が指定されている場合、または `@title` がある場合はデフォルトで `#cbd5e1` のボーダーを表示
-- タイトルが省略されている場合:
-  - タイトル帯なし、コンテンツのみ表示
-  - ボーダーは `@border-color` が明示的に指定された場合のみ表示
-- ボーダーの優先順位:
-  1. `@border-color` が指定 → その色でボーダー表示
-  2. `@title` があり `@border-color` なし → デフォルト灰色（`#cbd5e1`）のボーダー表示
-  3. それ以外 → ボーダーなし
-
-**TOC連携（column-toc）:**
-- `:::column-toc` は `@title` を必須とし、TOCに表示される
-- `@title` から slug を生成し、`id` 属性を付与（例: `@title:重要な補足` → `id="重要な補足"`）
-- TOCでの表示レベルは H4 相当（H3より深い階層、小さめに表示）
-- TOCからクリックで該当コラムにスムーススクロール
-- スタイリング: 通常の見出しより小さいフォントサイズ（0.8125rem）、やや薄め（opacity: 0.85）
-
-**実装の考慮事項:**
-- **remarkプラグイン**（`src/lib/markdown.tsx`）:
-  - `directive.name === "column"` または `directive.name === "column-toc"` を検出
-  - コンテンツをパースし、`@xxx:`行を抽出して `hProperties` の `data-*` 属性に変換
-  - `@xxx:` 行は最終的な出力から削除
-  - `column-toc` の場合、`@title` から `github-slugger` でIDを生成し `hProperties["id"]` に設定
-  - クラス名は両方とも `directive-column`（見た目は同じ）
-  
-- **TOC抽出**（`src/lib/toc.ts`）:
-  - Markdown を行単位でパース
-  - `:::column-toc` を検出し、次の `@title:` 行を抽出
-  - slug を生成して TOC アイテムとして追加（level: 2）
-  
-- **DirectiveWrapper コンポーネント**（`src/components/DirectiveWrapper.tsx`）:
-  - `data-title`, `data-title-color`, `data-color`, `data-background`, `data-border-color`, `data-border-width`, `data-border-style` 属性を受け取り
-  - スタイルを動的適用
-  - デフォルト値: `defaultBorderColor = "#cbd5e1"`, `defaultTitleBgColor = "#cbd5e1"`
-  - `id` プロパティを受け取り、外側の `div` に設定（TOCナビゲーション用）
-  
-- **サニタイズスキーマ**（`src/lib/markdown.tsx`）:
-  - `rehype-sanitize` の `div` 要素で以下の属性を許可:
-    - `data-title`, `data-title-color`, `data-color`, `data-background`
-    - `data-border-color`, `data-border-width`, `data-border-style`
-  
-- **アクセシビリティ**:
-  - タイトルは `<div>` で実装（装飾的な要素のため見出しレベルを消費しない）
-  - 必要に応じて `role="note"` 属性を追加可能
+- **TOC / RefLink 連携**
+  - `DirectiveWrapper` は外側 `div` に `id` を付与し、TOC やプレビューがアンカーへジャンプできるようにする。
 
 ---
 
 ## 4. UI/UX 仕様
 
-### 4.1 Zenn 風・現代的なレイアウト
+### 4.1 レイアウト構成
 
-- 右サイドに**固定 TOC**（`position: sticky`）、本文は中央 720–760px を基準
-- TOC にはスクロールスパイ（IntersectionObserver で現在位置の見出しをハイライト） ([MDNウェブドキュメント][7])
-- コードブロックはコピー・行番号ボタン
-- 画像はキャプション付き `<figure>`、クリックでライトボックス（将来拡張）
+- `DocLayout` がページ全体を担当。上部には `PreviewModeMenu`（右上固定）と、スクロールに応じて高さが変化する `DocHeader` を配置。
+- 本文領域は中央 3 カラム構成: 左に sticky TOC（`lg` 以上で表示）、中央に記事、右側はフローティングプレビュー用の余白を確保。
+- グループ配下ページでは `BackLink`（左アクセサリ）とグループタイトルをヘッダーに表示。
+- ページ下部に「前へ / 次へ」ナビゲーションカードを表示（`config.yaml` の `order` に基づく）。
 
-### 4.2 スクロールスパイの仕様
+### 4.2 目次とスクロールスパイ
 
-- 監視対象: `h2,h3,h4`
-- スレッショルド: `[0, 0.25, 0.5, 0.75, 1]`
-- 最上部に近い交差見出しをアクティブ化（ルールは「中心に最も近い heading」などを採用）
+- `extractToc` が H1〜H3 と `column-toc` を抽出し階層化。`column-toc` はレベル 4 として H3 の子に配置。
+- `Toc` コンポーネントは IntersectionObserver（閾値 `[0, 0.25, 0.5, 0.75, 1]`）で可視領域を計算し、
+  - 表示割合 / 位置 / セクション可視長のスコアリングでアクティブ見出しを決定
+  - ビューポート上端付近（スクロール量 < 100px）では最初の見出し、末尾では最後の見出しを自動選択
+- アクティブ項目はスムーズスクロールで自己位置を調整し、`aria-current="true"` を付与。
+- TOC のリンクはクリック時に本文を 20% オフセットでスクロールして視認性を確保。
 
-### 4.3 参照プレビューポップオーバー（VS Code の Peek 的）
+### 4.3 参照プレビューと表示モード
 
-- 参照リンク（例: `<a data-ref="thm:abc">定理 1.2</a>`）クリック時に**遷移せず**ポップオーバーを開く
-- コンテンツ: 参照先見出し or コンテナ本文の**要約 DOM**（見出し + 最初の段落/式）
-- 実装: Radix UI `Popover` + floating-ui で**位置合わせ**、Portal でオーバーレイ表示 ([GitHub Docs][8])
-- 「参照元へフォーカス維持」「参照先へジャンプ」両ボタンを提供
+- `RefLink` が参照クリック時にプレビューを生成。DOM クローンを使用し、SVG や column のトグルを含むリッチコンテンツをそのまま表示。
+- 表示モードは `PreviewContext` で管理し、`localStorage('preview-mode')` に保存。
+  - **floating**（デフォルト）: 本文右に小窓を重ねて表示。重なりを避けるため垂直位置を調整し、最大幅はビューポートに収まるよう制限。
+  - **inline**: 参照リンク直下に展開。横幅が 1280px 未満の環境では強制適用。
+- ウィンドウ内リンクは再帰的に `RefLink` として動作し、子ウィンドウをスタック表示。閉じるボタン / Jump ボタン付き。
+- `PreviewModeMenu` ではプレビュー表示モードに加え、`ThemeProvider` と連携したライト/ダーク切り替えを提供（設定は `docs-viewer-theme` に保存）。
 
----
+### 4.4 グループ一覧ページ
 
-## 5. コンテンツ取得・同期とキャッシュ戦略
+- フォルダ直下（`/info-logic` など）にアクセスすると `GroupLayout` を表示。`config.yaml` のメタデータと `getDocPreview` の結果からカード一覧を生成。
+- 最終更新日時 (`lastUpdated`) は配下ドキュメントの更新日時の最大値を表示。
+## 5. コンテンツ取得とキャッシュ戦略
 
-### 5.1 方式 A: **push 時ビルド**（SSG + ISR）
-
-- GitHub main ブランチへ push → **Vercel が自動デプロイ**。 ([Vercel][9])
-- 既知パスを `generateStaticParams()` / 事前ビルドし、**ISR** で時間ベース再検証（`revalidate = N`）を適用。 ([Vercel][17])
-- ドキュメント追加・変更に対し、**Deploy Hook** を使って手動再ビルドも可能。 ([Vercel][10])
-
-### 5.2 方式 B: **リクエスト時コンパイル**（SSR / Data Cache）
-
-- ページアクセス時に **GitHub API** で Markdown を取得 → パイプラインで描画。
-- **Vercel Data Cache** と `fetch(..., { next: { revalidate, tags } })` を活用（サーバー関数内）。 ([Vercel][18])
-- GitHub API は **ETag / If-None-Match** で304応答を活用し、レート制限とトラフィックを節約。 ([floating-ui.com][19])
-- main 更新時に Webhook→自前 API Route で **`revalidateTag()`** を呼び、該当タグを**即時無効化**。 ([nextjs.org][20])
-
-> 備考: 過去には revalidate の挙動に関する不具合報告もあるため、環境で挙動確認し、必要なら Deploy Hook 併用で確実に反映させる。 ([GitHub][21])
-
-### 5.3 どちらの採用が良いか
-
-- **A（push 時ビルド）**: 最速表示・シンプルなオペレーション。ドキュメント数が非常に多い場合はビルド時間に注意。
-- **B（リクエスト時）**: 初回昂り得るが、**ETag + Data Cache + タグ再検証**で実運用可能。ドキュメント数の増加に強い。
-
----
-
+- すべての Markdown はリポジトリ同梱の `docs/` ディレクトリからサーバー側で直接読み込む。
+  - `getDocBySlug` が `index.md` / `<slug>.md` を探索し、`fs.promises` で内容と `stat.mtime` を取得。
+  - `getGroupListing` はディレクトリ内の `.md` を列挙し、`config.yaml` の `order` → 未指定分はスラッグ昇順で並べる。
+- 現状はリクエスト毎にファイルを読み出す実装（In-memory キャッシュや ISR は未適用）。Next.js のファイルシステムキャッシュに依存していないため、必要に応じて今後 `cache()` や `revalidateTag()` を組み合わせる。
+- 将来的に GitHub API 連携へ切り替える場合でも `getDocBySlug` / `getGroupListing` の境界を差し替えればよい設計になっている。
 ## 6. セキュリティ・サニタイズ方針
 
-- `rehype-sanitize` による**厳格ホワイトリスト**:
-  - 許可要素（`p,h1..h6,ul,ol,li,table,code,pre,figure,img,svg` 等）
-  - 許可属性（`id,className,href,src,alt,aria-*` ほか限定）
-  - **style 属性は禁止**（必要時は限定クラスで代替） ([Yarn][13])
-
-- `rehype-raw` を使う場合でも必ず sanitize を後段に。 ([unified][3])
-- 画像/リンクは `rel="noopener noreferrer"`、外部リンクは別タブ
-
+- `rehype-sanitize` で明示的なホワイトリストを設定。
+  - 許可タグ: 見出し・段落・リスト・テーブル・`img`・`figure`・`svg`・Typst 生成要素（`g`, `path`, `defs`, `clipPath`, `use`, `style` など）・カスタム要素（`check-icon`, `task-checkbox`）。
+  - 許可属性: `id`, `className`, `href`, `rel`, `target`, `alt`, `width`, `height`, `data-ref*`, `data-title*`, `data-color`, `data-background`, `data-border-*`, `data-typst-style`, `aria-*` など必要最小限。
+  - `style` 属性は Typst SVG が持ち込む場合のみ一時的に許可し、`TypstSvg` で `data-typst-style` に移し替えてから削除。
+- ユーザーデータ由来の HTML は `rehype-raw` を経由させず、Markdown のみを処理対象にしている。
+- 外部リンクは `RefLink` ではなく通常の `<a>` として出力され、CSS で `text-decoration` を制御。必要に応じて `target="_blank"`/`rel="noopener noreferrer"` をフロントマター側で指定できる。
 ---
 
-## 7. ラベル・参照・番号付けの実装詳細
+## 7. ラベル・参照・注釈処理の実装詳細
 
-### 7.1 remarkプラグインの構成
+### 7.1 remark / rehype パイプライン
 
-**remarkCollectLabels（ラベル収集）:**
-- 見出しから `{#label-id}` を抽出
-- columnディレクティブから `{#label-id}` を抽出
-- ラベルインデックスを構築（文書スコープ）
+1. `remarkParse`
+2. `remarkMath` / `remarkGfm` / `remarkBreaks`
+3. `remarkDirective`
+4. **`remarkTransformDirectives`** — column メタ行の抽出・`:::` クローザ補正
+5. **`remarkCollectLabels`** — 見出し・column のラベル収集（`LabelIndex` に登録）
+6. **`remarkResolveReferences`** — `@label` 記法を `<a>` ノードへ変換し `data-ref-*` を付与
+7. **`remarkAnnotations`** — `:::annotation` をマーカー＋末尾リストへ展開
+8. `remarkRehype`（`allowDangerousHtml: false`）
+9. `rehypeSlug`
+10. `rehypeTypst` → Typst 数式を SVG へ
+11. カスタム rehype（Typst スタイル復元 / チェックボックス差し替え）
+12. `rehypeSanitize`（専用スキーマ）
+13. `rehypeReact`
 
-**remarkResolveReferences（参照解決）:**
-- テキストノード内の `@label-id` を検出
-- ラベルインデックスを参照して解決
-- リンクノードに変換
-
-**remarkNumbering（番号付け）:**
-- ラベルの接頭辞に基づいて番号を付与
-- 見出しレベルに応じた階層番号（§1.1, §1.2など）
-- columnの種類別カウンタ（定理1, 定理2など）
-
-### 7.2 処理フロー
+### 7.2 データの流れ
 
 ```
-Markdown
-  ↓
-remarkParse
-  ↓
-remarkDirective (ディレクティブ解析)
-  ↓
-remarkCollectLabels (ラベル収集) ← 新規実装
-  ↓
-remarkResolveReferences (参照解決) ← 新規実装
-  ↓
-remarkNumbering (番号付け) ← 新規実装
-  ↓
-remarkRehype
-  ↓
-rehypeSlug (見出しID付与)
-  ↓
-（以降は既存の処理）
+renderMarkdown(markdown)
+  ├─ LabelIndex を初期化
+  ├─ remark 系プラグインでラベル・参照・注釈を解析
+  ├─ rehypeSanitize でホワイトリスト化
+  └─ rehypeReact で React ノードを生成（RefLink, DirectiveWrapper など）
 ```
 
-### 7.3 ラベルインデックスの永続化
+生成された React ツリーはサーバーコンポーネント (`DocPage`) からクライアントコンポーネントへ渡され、参照プレビューや折りたたみ制御をクライアント側で行う。
 
-**Server Component（RSC）での実装:**
-- ラベルインデックスをレンダリング時に構築
-- React Contextまたはpropsで下位コンポーネントに渡す
-- RefLinkコンポーネントでタイトル情報を参照
+### 7.3 LabelIndex と RefLink
 
-**データの流れ:**
-```
-renderMarkdown()
-  → remarkプラグインでラベルインデックス構築
-  → rehype-reactでReact要素化
-  → RefLinkにdata-*属性として埋め込み
-  → クライアントでプレビュー表示
-```
+- `LabelIndex` は単純な `Map<string, LabelInfo>`。レンダリング中にのみ保持し、SSR 完了後はクライアントへデータを渡さない。
+- `remarkResolveReferences` は `LabelInfo` から `elementId`/`title` を取得して `<a>` に埋め込むため、クライアント側では追加のデータフェッチが不要。
+- `RefLink` は `data-ref` キーを `{sourceId}::{targetId}` の形でキャッシュキーに用い、同じプレビューを複数回開く際に DOM クローンを再利用する。
 
-### 7.4 番号付けルール
+### 7.4 注釈ディレクティブ (`:::annotation`)
 
-**見出し:**
-- H1: 章番号（1, 2, 3...）
-- H2: 節番号（1.1, 1.2, 2.1...）
-- H3: 項番号（1.1.1, 1.1.2...）
-- 参照テキスト: `§1.2` 形式
-
-**column（接頭辞ベース）:**
-- `thm-*`: 定理 1, 定理 2, ...
-- `def-*`: 定義 1, 定義 2, ...
-- `lem-*`: 補題 1, 補題 2, ...
-- `prop-*`: 命題 1, 命題 2, ...
-- `cor-*`: 系 1, 系 2, ...
-- `proof-*`: 証明（番号なし）
-- `ex-*`: 例 1, 例 2, ...
-- `rem-*`: 注意 1, 注意 2, ...
-
-**接頭辞とラベルの対応表:**
-```typescript
-const PREFIX_TO_LABEL: Record<string, string> = {
-  'thm': '定理',
-  'def': '定義',
-  'lem': '補題',
-  'prop': '命題',
-  'cor': '系',
-  'proof': '証明',
-  'ex': '例',
-  'rem': '注意',
-  'fig': '図',
-  'eq': '式',
-};
-```
-
+- マーカー挿入位置の文脈（段落内 / ブロック間）に応じてマーカー配置を調整。余計な空白や改行は `remarkAnnotations` がクリーンアップ。
+- 注釈本体は本文末尾の有序リストにまとめ、各項目に `id="annotation-n"` を付与。`summary`（最初の段落）を `LabelInfo` に格納し、プレビュー表示に利用。
+- プレビュー内でも `DirectiveWrapper` や数式が正しく描画されるよう、注釈本文をそのまま DOM クローンする。
 ---
 
 ## 8. TOC とスクロール挙動
 
-- ページ内の見出しから **TOC ツリー**を生成（最大 H3 まで）
-- IntersectionObserver で**現在位置**を判定し、対応する TOC 項目に `aria-current="true"` を付与 ([MDNウェブドキュメント][7])
-- クリック時はスムーススクロール。必要に応じ `scrollIntoView()` 系を使用（`scrollIntoViewIfNeeded` は非標準のため要注意） ([MDNウェブドキュメント][22])
+- `extractToc` は Markdown を行単位で解析し、H1〜H3 と `column-toc` のタイトルを抽出して木構造化。
+- `Toc` コンポーネントは複数指標（可視割合・理想位置との距離・次見出しまでの可視領域）を合成してアクティブ要素を決定。
+- 初期状態（スクロール 0 付近）は最初の見出しを強制選択、ページ最下部付近では最後の見出しを選択し、スクロール終端での揺れを防止。
+- アクティブリンクは `aria-current="true"` を付与し、TOC 内スクロールもスムーズスクロールで追従。
+- `column-toc` 項目は H3 の子レベルとしてドット表示し、プレビューウィンドウからのアンカー遷移にも利用される。
+## 9. パフォーマンスメモ
 
----
-
-## 9. パフォーマンス最適化
-
-- **SSR で Typst を描画**（可能なら）し、クライアントの WASM 実行を最小化（回線細い環境でも安定）
-- Typst 出力は **SVG** を優先（テキスト選択と拡大に強い）
-- 画像/数式/コードブロックは**遅延ロード**（`loading="lazy"` 等）
-- Data Cache / ISR を適切に設定（秒数は 30–300s を目安にチューニング） ([Vercel][17])
-
----
-
+- Typst のレンダリングは `rehype-typst` がサーバー側で行うため、ビルド／リクエスト時に WASM の初期化コストが発生する。大量ページでの再利用を想定し、今後 `cache()` などで結果を共有する余地あり。
+- 現状は画像・数式の遅延ロード等は未実装。必要に応じて Markdown 拡張や `<Image>` 置換を検討する。
+- プレビュー（RefLink）は DOM クローンをキャッシュすることで同一参照の再描画を避けている。
 ## 10. アクセシビリティ
 
-- 見出しはヒエラルキー順序を遵守
-- 数式 SVG には `aria-label` 相当の代替テキストを付与（環境次第で `<title>`/`<desc>`）
-- コンテナ（theorem/proof）は `role="note"` + `aria-labelledby` でタイトルと紐付け
-
----
-
+- 見出しは Markdown 構造をそのまま使用し、`Heading` コンポーネント内で装飾ハッシュを `aria-hidden` にしている。
+- `RefLink` は `<a>` 要素のままなのでスクリーンリーダーで参照先タイトルを読み上げ可能。プレビューは補助的機能として実装しており、従来のアンカー挙動（ジャンプ）も利用できる。
+- 折りたたみボタンやプレビューモードメニューは `aria-expanded` / `aria-controls` を付与済み。今後はキーボードフォーカスインジケータの整備や注釈マーカーへの詳細説明追加が課題。
 ## 11. デプロイ / 運用
 
-- GitHub と Vercel を連携し、**main** への push で自動デプロイ。 ([Vercel][9])
-- コンテンツ更新の即時反映が必要な場合:
-  - **Deploy Hook** を叩いて再ビルド、または
-  - Next.js の API Route から **`revalidateTag()`** を呼び出して Data Cache を無効化（タグは `repo:docs` や `path:/algebra` などを設計） ([Vercel][10])
-
-- 方式 B の場合は GitHub Webhook → 自前 API → `revalidateTag()` の連鎖で**数秒内**に反映
-
----
-
-## 12. フォルダ構成（アプリ側）
+- 現状はローカル `docs/` ディレクトリを参照するシンプルな構成。Vercel などのホスティングに載せる場合も追加のシークレットは不要。
+- Next.js App Router のランタイム（Node.js / Edge）いずれでも動作するが、`fs` を使用しているため Node.js ランタイムを選択する。
+- 将来的に外部リポジトリと同期したい場合は、`getDocBySlug` / `getGroupListing` を API 取得に差し替え、`revalidateTag()` などを併用してキャッシュ制御する想定。
+## 12. フォルダ構成（主要ファイル）
 
 ```
-app/
-  [[...slug]]/
-    page.tsx           // ルーティング解決 & データ取得
-    loading.tsx        // 初回ローディング
-    error.tsx
-components/
-  markdown/
-    MarkdownRenderer.tsx     // unified パイプライン
-    Heading.tsx
-    Admonition.tsx           // theorem/proof/column
-    MathBlock.tsx
-    RefLink.tsx              // @ラベルのリンク表示
-    RefPopover.tsx           // プレビュー（Radix Popover）
-  toc/
+src/
+  app/
+    [[...slug]]/
+      page.tsx          // slug 解決・Doc/Group 判定
+    layout.tsx          // ThemeProvider / PreviewProvider / グローバルレイアウト
+    globals.css         // テーマ変数 + Markdown 用スタイル
+  components/
+    DocHeader.tsx
+    doc-layout.tsx
+    GroupLayout.tsx
     Toc.tsx
-lib/
-  github.ts   // GitHub API (ETag, raw fetch)
-  refs.ts     // ラベル索引（同一文書内 + 将来は全体索引）
-  sanitize.ts // rehype-sanitize スキーマ
+    RefLink.tsx
+    DirectiveWrapper.tsx
+    typst-svg.tsx
+    PreviewModeMenu.tsx
+    TaskCheckbox.tsx / CheckIcon.tsx
+  contexts/
+    PreviewContext.tsx  // プレビュー表示モード（inline/floating）
+    ThemeContext.tsx    // data-theme と localStorage 管理
+  lib/
+    docs.ts             // Markdown / config.yaml 読み込み & メタ生成
+    markdown.tsx        // unified パイプライン
+    toc.ts              // TOC 抽出
+    refs.ts             // LabelIndex
+    remark-*.ts         // ラベル・参照・注釈向けカスタムプラグイン
 ```
+## 13. サンプルコード断片
 
----
-
-## 13. 代表的な設定断片
-
-### 13.1 Markdown→React（サーバ側）
+### 13.1 `renderMarkdown`（抜粋）
 
 ```ts
-// MarkdownRenderer.tsx（概要）
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
-import remarkDirective from "remark-directive";
-import remarkRehype from "remark-rehype";
-import rehypeTypst from "@myriaddreamin/rehype-typst"; // Typst 数式
-import rehypeSanitize from "rehype-sanitize";
-import rehypeReact from "rehype-react";
+export async function renderMarkdown(markdown: string): Promise<ReactNode> {
+  const isDev = process.env.NODE_ENV !== "production";
+  const labelIndex = new LabelIndex();
 
-export async function renderMarkdown(md: string) {
   const file = await unified()
     .use(remarkParse)
+    .use(remarkMath)
     .use(remarkGfm)
+    .use(remarkBreaks)
     .use(remarkDirective)
-    .use(remarkRehype)
-    .use(rehypeTypst) // typst.ts 連携
-    .use(rehypeSanitize, mySchema) // ホワイトリスト
+    .use(remarkTransformDirectives)
+    .use(remarkCollectLabels, { labelIndex })
+    .use(remarkResolveReferences, { labelIndex })
+    .use(remarkAnnotations, { labelIndex })
+    .use(remarkRehype, { allowDangerousHtml: false })
+    .use(rehypeSlug)
+    .use(rehypeTypst, { renderOptions: { format: "svg" } })
+    .use(enforceInlineMathRendering)
+    .use(preserveTypstStyles)
+    .use(replaceCheckmarks)
+    .use(replaceTaskCheckboxes)
+    .use(rehypeSanitize, sanitizeSchema)
     .use(rehypeReact, {
-      /* element => component map */
+      Fragment,
+      jsx,
+      jsxs,
+      development: isDev,
+      jsxDEV: isDev ? jsxDEV : undefined,
+      components: {
+        a: RefLink,
+        h1: HeadingH1,
+        h2: HeadingH2,
+        h3: HeadingH3,
+        h4: HeadingH4,
+        h5: HeadingH5,
+        h6: HeadingH6,
+        div: DirectiveWrapper,
+        svg: TypstSvg,
+        "check-icon": CheckIcon,
+        "task-checkbox": (props: { checked?: string }) => (
+          <TaskCheckbox checked={props.checked === "true"} />
+        ),
+      },
     })
-    .process(md);
-  return String(file); // or ReactNodes
+    .process(markdown);
+
+  return file.result as ReactNode;
 }
 ```
 
-（_rehype-typst / typst.ts / sanitize の要点は各ドキュメント参照_） ([Hanwen][12])
+### 13.2 `docs.ts` のナビゲーションロジック（要点）
 
-### 13.2 GitHub 取得（ETag）
-
-- `GET /repos/{owner}/{repo}/contents/{path}` / `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1` を利用。`If-None-Match` で 304 を活用。 ([GitHub Docs][11])
-
-### 13.3 ISR / Data Cache
-
-- `export const revalidate = 60` または `fetch(url, { next: { revalidate: 60, tags: ['repo:docs'] } })`
-- Webhook/API で **`revalidateTag('repo:docs')`** を呼ぶ。 ([Vercel][17])
-
----
-
+- `normalizeOrderEntry` が `config.yaml` の `order` 行を正規化（パス区切り対応）。
+- `buildNavigation` が現在スラッグを `order` 上で検索し、前後のドキュメントタイトルを非同期で取得。
+- グループ未設定・`order` に存在しない場合はナビゲーションを表示しない。
 ## 14. テストと検証
 
-- 単体: ラベル解析・参照解決（`@`）、コンテナ番号付け、sanitize スキーマ
-- E2E: 主要ブラウザで TOC スクロールスパイ、参照プレビューの動作確認
-- 負荷: 大容量文書・画像多数のページで**初回描画**と**再検証**の時間計測
-
----
-
+- 単体: ラベル解析 / 参照解決（`@` 記法）、注釈抽出、TOC 抽出ロジック、`DirectiveWrapper` の折りたたみ判定。
+- コンポーネント: `RefLink` の表示モード切り替え、プレビュー内での再帰的リンク、`PreviewModeMenu` のローカルストレージ連携。
+- E2E: 主要ブラウザで TOC スクロールスパイ、プレビューのフローティング配置、テーマ切り替えが期待通りに動作することを確認。
+- パフォーマンス: 大規模 Markdown で Typst レンダリング時間とプレビュー動作を計測。必要に応じてキャッシュ戦略を検討。
 ## 15. 今後の拡張
 
 - **全文検索**（静的インデックス or サーバ検索）
@@ -670,12 +498,11 @@ export async function renderMarkdown(md: string) {
 
 ### 付記（設計上のメモ）
 
-- Tailwind と `react-markdown` の組み合わせでは、デフォルトタグの初期スタイルがリセットされるため、`.prose` 系のスタイルかカスタム CSS で整える（一般的な落とし穴）。 ([Stack Overflow][23])
-- `rehype-raw` は便利だが **XSS リスク**があるため、**sanitize の許可リスト**運用が前提。 ([Yarn][13])
+- `DocHeader` のスクロール補間は requestAnimationFrame で行っており、スクロール量に応じて CSS カスタムプロパティを更新する。
+- プレビューの DOM クローンは `data-preview-cache-key` を用いてキャッシュ。DOM サイズが大きい場合はメモリ使用量に注意。
+- `DirectiveWrapper` の折りたたみ判定は `ResizeObserver` 非対応ブラウザ向けフォールバックが未実装（必要に応じてポリフィル検討）。
 
----
-
-必要ならこのまま雛形リポジトリ（Next.js 15/16, App Router 前提）と、`rehype-typst` + `typst.ts` の最小動作サンプルも用意します。どの同期方式（A/B）で進めるか、希望があれば教えてください。
+必要ならこのまま雛形リポジトリ（Next.js 16, App Router 前提）と、`rehype-typst` + `typst.ts` の最小動作サンプルも用意します。どの同期方式で進めるか希望があれば教えてください。
 
 [1]: https://nextjs.org/docs/app/getting-started/caching-and-revalidating?utm_source=chatgpt.com "Getting Started: Caching and Revalidating"
 [2]: https://github.com/remarkjs/remark-directive "GitHub - remarkjs/remark-directive: remark plugin to support directives"
@@ -684,19 +511,10 @@ export async function renderMarkdown(md: string) {
 [5]: https://github.com/rehype-pretty/rehype-pretty-code?utm_source=chatgpt.com "rehype-pretty/rehype-pretty-code: Beautiful code blocks for ..."
 [6]: https://github.com/rehypejs/rehype-react?utm_source=chatgpt.com "rehypejs/rehype-react: plugin to transform to preact, ..."
 [7]: https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API?utm_source=chatgpt.com "Intersection Observer API - MDN Web Docs"
-[8]: https://docs.github.com/rest/repos/contents?utm_source=chatgpt.com "REST API endpoints for repository contents"
 [9]: https://vercel.com/docs/frameworks/full-stack/nextjs?utm_source=chatgpt.com "Next.js on Vercel"
 [10]: https://vercel.com/docs/deploy-hooks?utm_source=chatgpt.com "Creating & Triggering Deploy Hooks"
-[11]: https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api?utm_source=chatgpt.com "Best practices for using the REST API"
 [12]: https://hanwen.io/en/posts/use_typst_for_math_in_blog/?utm_source=chatgpt.com "Use Typst for Math in Blog - ~hanwen >_"
 [13]: https://classic.yarnpkg.com/en/package/react-markdown?utm_source=chatgpt.com "react-markdown"
 [14]: https://typst.app/docs/reference/math/?utm_source=chatgpt.com "Math – Typst Documentation"
 [15]: https://myriad-dreamin.github.io/typst.ts/?utm_source=chatgpt.com "reflexo-typst Documentation"
 [16]: https://mystmd.org/guide/cross-references "Cross-references - MyST Markdown"
-[17]: https://vercel.com/docs/incremental-static-regeneration?utm_source=chatgpt.com "Incremental Static Regeneration (ISR)"
-[18]: https://vercel.com/docs/data-cache?utm_source=chatgpt.com "Data Cache for Next.js"
-[19]: https://floating-ui.com/?utm_source=chatgpt.com "Floating UI - Create tooltips, popovers, dropdowns, and more"
-[20]: https://nextjs.org/docs/app/api-reference/functions/revalidateTag?utm_source=chatgpt.com "Functions: revalidateTag"
-[21]: https://github.com/vercel/next.js/issues/57632?utm_source=chatgpt.com "fetch revalidation not working with Nextjs 14.0.0 #57632"
-[22]: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoViewIfNeeded "Element: scrollIntoViewIfNeeded() method - Web APIs | MDN"
-[23]: https://stackoverflow.com/questions/74607419/react-markdown-don%C2%B4t-render-markdown?utm_source=chatgpt.com "react-markdown don´t render Markdown"
