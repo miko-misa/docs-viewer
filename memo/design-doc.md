@@ -92,10 +92,11 @@ docs/
    - `readGroupConfig` が同階層の `config.yaml` を `js-yaml` 経由で読み込み、ディレクトリ単位の `title / description / tags / order` を付与
    - グループ配下ドキュメントでは `tags` をグループ設定から継承し、単独ドキュメントはフロントマターの `tags` をそのまま利用
 3. **Markdown 変換 (`renderMarkdown`)**:
-   - `remark-parse` → `remark-math` → `remark-gfm` → `remark-breaks` → `remark-directive`
-   - カスタム `remarkTransformDirectives` が `column`/`column-toc` のメタ行整理・`:::` クローズ行の再配置を実施
+  - `remark-parse` → `remark-math` → `remark-gfm` → `remark-breaks` → `remark-directive`
+  - `remarkNormalizeDiffCode` が `diff-<lang>` / `diff:<lang>` 形式のコードフェンスを通常の言語＋`diff` メタへ正規化し、シンタックスカラーと差分背景を両立
+  - カスタム `remarkTransformDirectives` が `column`/`column-toc` のメタ行整理・`:::` クローズ行の再配置を実施
    - `LabelIndex` を共有しながら `remarkCollectLabels`（見出し＋column ラベル収集）→ `remarkResolveReferences`（`@label` → `RefLink` 化）→ `remarkAnnotations`（`:::annotation` を抽出し本文末尾へ集約）
-   - `remark-rehype`（HTML は危険許可なし）→ `rehype-slug` → `rehype-typst`（Typst 数式を SVG 化）→ カスタム rehype プラグイン（Typst スタイル保持、チェックマーク/タスクリストの独自要素化）→ `rehype-sanitize`（スキーマは §6）
+  - `remark-rehype`（HTML は危険許可なし）→ `rehype-pretty-code`（Shiki ベースのシンタックスハイライト）→ `rehype-slug` → `rehype-typst`（Typst 数式を SVG 化）→ カスタム rehype プラグイン（Typst スタイル保持、チェックマーク/タスクリストの独自要素化）→ `rehype-sanitize`（スキーマは §6）
 4. **React 化**:
    - `rehype-react` で React ノードへ変換し、`RefLink` / `DirectiveWrapper` / `TypstSvg` / `HeadingH*` などのコンポーネントに差し替え
    - 生成物は RSC 側で `DocLayout` / `GroupLayout` に渡し、UI レイヤーで TOC やプレビュー制御を行う
@@ -277,6 +278,18 @@ export interface LabelInfo {
 - **TOC / RefLink 連携**
   - `DirectiveWrapper` は外側 `div` に `id` を付与し、TOC やプレビューがアンカーへジャンプできるようにする。
 
+### 3.5 コードブロックとシンタックスハイライト
+
+- `rehype-pretty-code`（Shiki）を使用し、サーバーレンダリング時にコードブロックへハイライトを適用。
+- テーマ: ライトモード `github-light` / ダークモード `github-dark`。`keepBackground: false` で背景色は CSS 側で統一。
+- 行ハイライト: フェンス記法のメタデータ（例: \`\`\`ts {1,4-5}\`\`\`）を remark 側で解析し、該当行に `data-highlighted` を付与。CSS で背景色を変更。
+- 差分表示: コードブロックが `diff` 言語、またはメタに `diff` を含む場合（例: `ts` フェンスに `diff` を付ける、`diff-ts` 形式など）は、先頭の `+`/`-` を除去して `data-diff="add|remove"` と `data-diff-symbol` を保持。
+  - lucide-react の `Plus`/`Minus` アイコンを専用要素（`<diff-icon>`）で描画。
+  - コピー時には記号を除去したコードのみが取得される。
+- サニタイズ許可属性: `data-language`, `data-theme`, `data-line`, `data-highlighted`, `data-diff`, `data-diff-symbol`, `style`（コードトークン用）などを追加（§6参照）。
+- `globals.css` で `pre[data-theme]` や `.line[data-diff]` のスタイルを調整し、余剰な行間を抑えつつ差分行を視覚的に強調。
+
+
 ---
 
 ## 4. UI/UX 仕様
@@ -325,6 +338,7 @@ export interface LabelInfo {
   - `style` 属性は Typst SVG が持ち込む場合のみ一時的に許可し、`TypstSvg` で `data-typst-style` に移し替えてから削除。
 - ユーザーデータ由来の HTML は `rehype-raw` を経由させず、Markdown のみを処理対象にしている。
 - 外部リンクは `RefLink` ではなく通常の `<a>` として出力され、CSS で `text-decoration` を制御。必要に応じて `target="_blank"`/`rel="noopener noreferrer"` をフロントマター側で指定できる。
+- コードブロック関連属性 `data-language`, `data-theme`, `data-line`, `data-highlighted`, `data-diff` などをホワイトリストに追加し、`rehype-pretty-code` の出力を保持。
 ---
 
 ## 7. ラベル・参照・注釈処理の実装詳細
@@ -339,11 +353,12 @@ export interface LabelInfo {
 6. **`remarkResolveReferences`** — `@label` 記法を `<a>` ノードへ変換し `data-ref-*` を付与
 7. **`remarkAnnotations`** — `:::annotation` をマーカー＋末尾リストへ展開
 8. `remarkRehype`（`allowDangerousHtml: false`）
-9. `rehypeSlug`
-10. `rehypeTypst` → Typst 数式を SVG へ
-11. カスタム rehype（Typst スタイル復元 / チェックボックス差し替え）
-12. `rehypeSanitize`（専用スキーマ）
-13. `rehypeReact`
+9. `rehypePrettyCode`（Shiki を用いたコードブロック装飾）
+10. `rehypeSlug`
+11. `rehypeTypst` → Typst 数式を SVG へ
+12. カスタム rehype（Typst スタイル復元 / チェックボックス差し替え）
+13. `rehypeSanitize`（専用スキーマ）
+14. `rehypeReact`
 
 ### 7.2 データの流れ
 
@@ -436,6 +451,7 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkGfm)
     .use(remarkBreaks)
     .use(remarkDirective)
+  .use(remarkNormalizeDiffCode)
     .use(remarkTransformDirectives)
     .use(remarkCollectLabels, { labelIndex })
     .use(remarkResolveReferences, { labelIndex })

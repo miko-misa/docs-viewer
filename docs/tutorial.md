@@ -53,7 +53,7 @@ Docs Viewer は Typst ベースの数式レンダリングに対応していま�
 - ブロック:
 
 $$
-\int_0^\infty e^{-x^2} \dif x = \frac{\sqrt{\pi}}{2}
+integral_0^infinity e^(-x^2) dif x = sqrt(pi)/2
 $$
 
 数式にラベルを付けたい場合は `(eq-example)=` のように書き、`@eq-example` で参照できます。
@@ -111,9 +111,20 @@ $$
 
 ## (sec-annotations)= 注釈
 
-長文の補足は `:::annotation` で記述します。本文中には上付き数字のマーカーが残り、ページ末尾に注釈一覧が自動生成されます。
+長文の補足は `:::annotation` で記述します。本文中には上付き数字のマーカーが残り、ページ末尾に注釈一覧が自動生成されます。`:::annotation`は追加したい文章中で改行し、記述を開始します。
 
-例: この文は注釈で詳しく説明します。:::annotation
+```
+例: この文は注釈で詳しく説明します。
+:::annotation
+注釈内では段落や箇条書き、Typst 数式などのブロック要素も利用できます。
+
+- 目的: 本文をすっきり保ちながら補足を書く
+- 参照: 注釈マーカーをクリックするとプレビュー小窓が開きます。
+:::
+```
+
+例: この文は注釈で詳しく説明します。
+:::annotation
 注釈内では段落や箇条書き、Typst 数式などのブロック要素も利用できます。
 
 - 目的: 本文をすっきり保ちながら補足を書く
@@ -136,12 +147,47 @@ GitHub Flavored Markdown のタスクリストに対応しています。`[ ]` �
 
 ## (sec-code)= コードブロックと言語ハイライト
 
-通常のフェンスコードブロックを利用できます。ハイライトはブラウザ標準ですが、将来的にシンタックスハイライトを導入する場合はここに追記します。
+コードブロックは `rehype-pretty-code` によって自動的にシンタックスハイライトされます。対応している主な使い方は次の通りです。
 
 ```ts
 function greet(name: string) {
   console.log(`Hello, ${name}!`);
 }
+```
+
+- **言語の指定**: フェンスの後に言語名を記述すると、その言語として着色されます。（例: ` ```ts`, ` ```python`）
+- **行番号のハイライト**: `{}` で行番号を指定すると、該当行が背景色で強調されます。
+
+```js {1,3-4}
+import { useMemo } from "react";
+
+export function total(items: number[]) {
+  return useMemo(() => items.reduce((sum, item) => sum + item, 0), [items]);
+}
+```
+
+- **差分表示**: 行頭に `+` や `-` を付けると追加・削除行として装飾されます。左端には統一されたアイコンが表示され、コピー時には `+/-` 記号が除去されます。
+  - ベース言語のみで差分を表示したい場合は、フェンスの言語指定の後ろに `diff` を追加してメタ情報に含めます（例: ts フェンスならメタに `diff` を付与）。
+  - `diff-ts` や `diff:ts` のように言語名に接頭辞を付けても同じ挙動になり、シンタックスハイライトは `ts`、背景は差分色で表示されます。
+
+```diff
+const apiUrl = "/api/v1";
+-const timeout = 5000;
++const timeout = 8000;
+```
+
+```ts diff
+export const handler = async (request: Request) => {
+  const body = await request.json();
++  if (!body.userId) {
++    throw new Error("userId is required");
++  }
+  return {
+    ok: true,
+-     permissions: await fetchPermissions(body.userId),
++     permissions: await loadPermissions(body.userId),
+  } satisfies ResponsePayload;
+};
 ```
 
 ## (sec-images)= 画像と図表
