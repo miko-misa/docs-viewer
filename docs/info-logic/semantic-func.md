@@ -173,8 +173,18 @@ $$
 
 :::column-toc
 @title:【定理】意味論的等価性は同値関係
+
 **【主張】**
-意味論的等価性$approx$は同値関係である。
+意味論的等価性$approx$は同値関係
+:::annotation
+同値関係とは関係$R$のうち以下の3つの性質をもつものである。
+
+1. **反射律**: $a R a$である。
+2. **対称律**: $a R b$ならば$b R a$である。
+3. **推移律**: $a R b$かつ$b R c$ならば$a R c$である。
+
+:::
+である。
 
 **【証明】**
 任意の命題論理式$phi, psi, sigma in italic("PROP")$に対して以下を示す。
@@ -275,14 +285,17 @@ phi[psi slash p] &= (p and (q or not p))[psi slash p]\
 $$
 
 :::column-toc
+(lem-substitution)=
 @title:代入補題
 
 代入に関する補題として、以下の主張がある。
 **【主張】**
 $phi_1 approx phi_2$ならば任意の命題論理式$psi in italic("PROP")$および原始命題$p in italic("ATOM")$に対して
+
 $$
 psi[phi_1 slash p] approx psi[phi_2 slash p]
 $$
+
 である。
 
 **【証明】**
