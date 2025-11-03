@@ -8,3 +8,5 @@ order:
   - prop-define
   - semantic-func
   - normal-form
+  - duality-deductive
+  - natural-deduction

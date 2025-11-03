@@ -152,3 +152,103 @@ F_|(b_1, b_2) &= cases(0 & " if " b_1 = 1 & " and " & b_2 = 1, 1 & " otherwise "
 $$
 
 この演算は`NAND`と呼ばれ、これだけで関数的に完全である。そのため、コンピュータはこの`NAND`回路を組み合わせて作られている。
+
+# 標準系
+命題論理式を特定の形式に変形したものを**標準系(normal form)**という。代表的なものに**否定標準系(negation normal form: "NNF")**、**論理和標準形(disjunctive normal form: DNF)**、**論理積標準形(conjunctive normal form: CNF)**がある。以下でそれぞれを定義し、変形方法を示す。
+
+## リテラル
+命題論理式の**リテラル(literal)**とは、原始命題$p$またはその否定$not p$のことである。$p$を正リテラル、$not p$を負リテラルという。
+
+## 否定標準系
+命題論理式$phi$が**否定標準系(negation normal form: "NNF")**であるとは、次の条件を満たすときである。
+
+1. $phi$に含まれる結合子は$not, and, or$のみである。
+2. $not$は原始命題にのみ作用している。
+
+たとえば、$(p and not q) or (not r and s)$は否定標準系であるが、$not (p or q)$や$not not p$は否定標準系ではない。
+
+---
+
+任意の命題$phi$に対して、等価な否定標準系$phi'$を構成することができる。これは${and, or, not}$が関数的に完全であるためである。また次に説明するような変換を行う写像を定義することができる。
+
+### 否定標準系への変換
+写像$italic("NNF")$を以下のように定義する。なお、$p$は原始命題、$phi, psi$は任意の命題とする。
+
+$$
+italic("NNF") &: italic("PROP") -> italic("PROP")\
+italic("NNF")(p) &= p\
+italic("NNF")(not p) &= not p\
+italic("NNF")(not not phi) &= italic("NNF")(phi)\
+italic("NNF")(phi and psi) &= italic("NNF")(phi) and italic("NNF")(psi) \
+italic("NNF")(phi or psi) &= italic("NNF")(phi) or italic("NNF")(psi) \
+italic("NNF")(not (phi and psi)) &= italic("NNF")(not phi) or italic("NNF")(not psi) \
+italic("NNF")(not (phi or psi)) &= italic("NNF")(not phi) and italic("NNF")(not psi) \
+italic("NNF")(phi -> psi) &= italic("NNF")(not phi or psi) \
+italic("NNF")(phi <-> psi) &= italic("NNF")((phi and psi) or (not phi and not psi)) \
+italic("NNF")(not (phi -> psi)) &= italic("NNF")(phi and not psi) \
+italic("NNF")(not (phi <-> psi)) &= italic("NNF")((phi and not psi) or (not phi and psi)) 
+$$
+
+このとき、任意の命題$phi$に対して、$phi approx italic("NNF")(phi)$であり、$italic("NNF")(phi)$は否定標準系である。
+簡単にいえば、以下のような手順を踏む。
+
+1. $<->$や$->$を$not, and, or$に書き換える。
+2. $not$を内側に押し込む（ド・モルガンの法則を適用する）。
+3. 二重否定を消去する。
+
+## 論理和標準形と論理積標準形
+命題論理式$phi$が **論理和標準形(disjunctive normal form: DNF)** であるとは、次の条件を満たすときである。
+
+1. $phi$は論理和の形をしている。すなわち、$phi = tau_1 or tau_2 or dots or tau_m$である。
+2. 各$tau_i$は論理積の形をしている。すなわち、$tau_i = ell_(i 1) and ell_(i 2) and dots and ell_(i k)$であり、各$ell_(i j)$はリテラルである。
+
+つまり、論理和標準形とは形式的には以下のような式である。ただし、$ell_(i j)$はリテラルである。
+$$
+phi &= (ell_(1 1) and ell_(1 2) and dots and ell_(1 k_1)) or (ell_(2 1) and ell_(2 2) and dots and ell_(2 k_2)) or dots or (ell_(m 1) and ell_(m 2) and dots and ell_(m k_m))\
+&= or.big_(1 <= i <= m) and.big_(1 <= j <= k_i) ell_(i j)
+$$
+
+---
+
+命題論理式$phi$が **論理積標準形(conjunctive normal form: CNF)** であるとは、次の条件を満たすときである。
+1. $phi$は論理積の形をしている。すなわち、$phi = tau_1 and tau_2 and dots and tau_m$である。
+2. 各$tau_i$は論理和の形をしている。すなわち、$tau_i = ell_(i 1) or ell_(i 2) or dots or ell_(i k)$であり、各$ell_(i j)$はリテラルである。
+
+つまり、論理積標準形とは形式的には以下のような式である。ただし、$ell_(i j)$はリテラルである。
+$$
+phi &= (ell_(1 1) or ell_(1 2) or dots or ell_(1 k_1)) and (ell_(2 1) or ell_(2 2) or dots or ell_(2 k_2)) and dots and (ell_(m 1) or ell_(m 2) or dots or ell_(m k_m))\
+&= and.big_(1 <= i <= m) or.big_(1 <= j <= k_i) ell_(i j)
+$$
+
+---
+任意の命題論理式$phi$に対して、等価な論理和標準形および論理積標準形を構成することができる。これは${and, or, not}$が関数的に完全であるためである。また次に説明するような変換を行う写像を定義することができる。
+
+### 論理和標準形・論理積標準形への変換
+写像$italic("DNF")$を以下のように定義する。なお、$phi, psi$は任意の否定標準形、$ell$はリテラルとする。なお、$italic("DNF")(phi) = phi_1 or phi_2 or dots or phi_n$, $italic("DNF")(psi) = psi_1 or psi_2 or dots or psi_m$とする。
+$$
+italic("DNF") &: italic("PROP") -> italic("PROP")\
+italic("DNF") (ell) &= ell\
+italic("DNF") (phi or psi) &= italic("DNF")(phi) or italic("DNF")(psi) \
+italic("DNF") (phi and psi) &= or.big_(1 <= i <= n) or.big_(1 <= j <= m) (phi_i and psi_j) \
+$$
+
+同様に写像$italic("CNF")$を以下のように定義する。なお、$phi, psi$は任意の否定標準形、$ell$はリテラルとする。なお、$italic("CNF")(phi) = phi_1 and phi_2 and dots and phi_n$, $italic("CNF")(psi) = psi_1 and psi_2 and dots and psi_m$とする。
+$$
+italic("CNF") &: italic("PROP") -> italic("PROP")\
+italic("CNF") (ell) &= ell\
+italic("CNF") (phi or psi) &= and.big_(1 <= i <= n) and.big_(1 <= j <= m) (phi_i or psi_j) \
+italic("CNF") (phi and psi) &= italic("CNF")(phi) and italic("CNF")(psi) \
+$$
+
+---
+このとき、任意の命題$phi$に対して、$phi approx italic("DNF")(italic("NNF")(phi))$および$phi approx italic("CNF")(italic("NNF")(phi))$であり、$italic("DNF")(italic("NNF")(phi))$は論理和標準形、$italic("CNF")(italic("NNF")(phi))$は論理積標準形である。
+簡単にいえば、以下のような手順を踏む。
+
+1. $phi$を否定標準系に変換する。
+2. 分配律を適用して論理和標準形または論理積標準形に変換する。
+   分配律とは以下の等価式である。
+   $$
+    (phi_1 or phi_2 or dots or phi_m) and (psi_1 or psi_2 or dots or psi_n) &approx or.big_(1 <= i <= m) or.big_(1 <= j <= n) (phi_i and psi_j) \
+    (phi_1 and phi_2 and dots and phi_m) or (psi_1 and psi_2 and dots and psi_n) &approx and.big_(1 <= i <= m) and.big_(1 <= j <= n) (phi_i or psi_j)
+   $$
+
