@@ -626,6 +626,10 @@ body {
   stroke: currentColor !important;
 }
 
+.docs-content svg.typst-doc [stroke]:not([stroke="none"]) {
+  stroke: currentColor !important;
+}
+
 /* インライン数式 - vertical-alignはインラインスタイルを優先 */
 .docs-content p svg.typst-doc.typst-inline,
 .docs-content li svg.typst-doc,

@@ -11,6 +11,7 @@ import type {
   DefinitionContent,
 } from "mdast";
 import type { Plugin } from "unified";
+import type { VFile } from "vfile";
 import { visit } from "unist-util-visit";
 import { LabelIndex } from "./refs";
 
@@ -26,6 +27,11 @@ type AnnotationInfo = {
   content: Content[];
 };
 
+type AnnotationDirectiveData = {
+  annotationHasBlankBefore?: boolean;
+  annotationHasBlankAfter?: boolean;
+};
+
 type DirectiveNode = Parent & {
   type: "containerDirective";
   name?: string;
@@ -39,8 +45,11 @@ type DirectiveNode = Parent & {
 
 const ANNOTATION_PREFIX = "annotation";
 
+type MarkerPlacementResult = "removed" | "replaced";
+
 export const remarkAnnotations: Plugin<[PluginOptions], Root> = ({ labelIndex }) => {
-  return (tree: Root) => {
+  return (tree: Root, file?: VFile) => {
+    const sourceText = typeof file?.value === "string" ? file.value : String(file?.value ?? "");
     const annotations: AnnotationInfo[] = [];
 
     visit(tree, (node, index, parent) => {
@@ -50,11 +59,20 @@ export const remarkAnnotations: Plugin<[PluginOptions], Root> = ({ labelIndex })
       const directive = node as DirectiveNode;
       if ((directive.name ?? "") !== "annotation") return;
 
+      directive.data = directive.data ?? {};
+      const directiveData = directive.data as AnnotationDirectiveData;
+      directiveData.annotationHasBlankBefore = hasBlankLineBeforeInSource(sourceText, directive);
+      directiveData.annotationHasBlankAfter = hasBlankLineAfterInSource(sourceText, directive);
+
       const annotation = createAnnotation(directive, annotations.length + 1, labelIndex);
       annotations.push(annotation);
 
       const marker = createAnnotationMarker(annotation);
-      insertMarkerIntoParent(parent, index, marker, directive);
+      const placement = insertMarkerIntoParent(parent, index, marker, directive);
+
+      if (placement === "removed") {
+        return index - 1;
+      }
     });
 
     if (annotations.length > 0) {
@@ -70,6 +88,7 @@ function createAnnotation(
   number: number,
   labelIndex: LabelIndex,
 ): AnnotationInfo {
+  directive.data = directive.data ?? {};
   const elementId = `${ANNOTATION_PREFIX}-${number}`;
   const title = `注釈 ${number}`;
   const content = cloneNodes((directive.children as Content[]) ?? []);
@@ -119,21 +138,24 @@ function insertMarkerIntoParent(
   index: number,
   marker: Content,
   directive: DirectiveNode,
-) {
+): MarkerPlacementResult {
   if (parent.type === "paragraph") {
     parent.children.splice(index, 1, marker);
-    return;
+    return "replaced";
   }
 
   const previous = parent.children[index - 1];
   const next = parent.children[index + 1];
-  const hasBlankBefore = hasBlankLineBetween(previous, directive);
-  const hasBlankAfter = hasBlankLineBetween(directive, next);
+  const directiveData = directive.data as AnnotationDirectiveData | undefined;
+  const hasBlankBefore =
+    directiveData?.annotationHasBlankBefore ?? hasBlankLineBetween(previous, directive);
+  const hasBlankAfter =
+    directiveData?.annotationHasBlankAfter ?? hasBlankLineBetween(directive, next);
 
   if (hasBlankBefore && next?.type === "paragraph") {
     prependMarkerToParagraph(next as Paragraph, marker);
     parent.children.splice(index, 1);
-    return;
+    return "removed";
   }
 
   if (!hasBlankBefore && previous?.type === "paragraph") {
@@ -143,25 +165,26 @@ function insertMarkerIntoParent(
     if (!hasBlankAfter) {
       mergeFollowingParagraph(parent, index, paragraph);
     }
-    return;
+    return "removed";
   }
 
   if (next?.type === "paragraph") {
     prependMarkerToParagraph(next as Paragraph, marker);
     parent.children.splice(index, 1);
-    return;
+    return "removed";
   }
 
   if (previous?.type === "paragraph") {
     appendMarkerToParagraph(previous as Paragraph, marker);
     parent.children.splice(index, 1);
-    return;
+    return "removed";
   }
 
   parent.children.splice(index, 1, {
     type: "paragraph",
     children: [marker],
   } as Paragraph);
+  return "replaced";
 }
 
 function hasBlankLineBetween(
@@ -174,7 +197,59 @@ function hasBlankLineBetween(
   return startLine - endLine > 1;
 }
 
+function hasBlankLineBeforeInSource(source: string, directive: DirectiveNode): boolean {
+  if (!source) return false;
+  const startOffset = directive.position?.start?.offset;
+  if (startOffset === undefined || startOffset === null || startOffset <= 0) {
+    return false;
+  }
+
+  let searchIndex = startOffset - 1;
+  if (searchIndex >= source.length) {
+    searchIndex = source.length - 1;
+  }
+
+  const previousLineEnd = source.lastIndexOf("\n", searchIndex);
+  if (previousLineEnd === -1) {
+    return false;
+  }
+
+  const previousLineStart = source.lastIndexOf("\n", previousLineEnd - 1);
+  const sliceStart = previousLineStart === -1 ? 0 : previousLineStart + 1;
+  const previousLine = source.slice(sliceStart, previousLineEnd).trim();
+  return previousLine.length === 0;
+}
+
+function hasBlankLineAfterInSource(source: string, directive: DirectiveNode): boolean {
+  if (!source) return false;
+  const endOffset = directive.position?.end?.offset;
+  if (endOffset === undefined || endOffset === null) {
+    return false;
+  }
+
+  let index = endOffset;
+  if (index >= source.length) {
+    return false;
+  }
+
+  // Skip the newline immediately following the directive if present.
+  if (source[index] === "\r" && source[index + 1] === "\n") {
+    index += 2;
+  } else if (source[index] === "\n") {
+    index += 1;
+  }
+
+  if (index >= source.length) {
+    return false;
+  }
+
+  const nextLineEnd = source.indexOf("\n", index);
+  const nextLine = source.slice(index, nextLineEnd === -1 ? source.length : nextLineEnd).trim();
+  return nextLine.length === 0;
+}
+
 function appendMarkerToParagraph(paragraph: Paragraph, marker: Content) {
+  trimTrailingSoftBreak(paragraph);
   paragraph.children.push(marker as unknown as Paragraph["children"][number]);
 }
 
@@ -194,22 +269,57 @@ function trimLeadingWhitespace(paragraph: Paragraph) {
   }
 }
 
+function trimTrailingSoftBreak(paragraph: Paragraph) {
+  while (paragraph.children.length > 0) {
+    const lastIndex = paragraph.children.length - 1;
+    const last = paragraph.children[lastIndex] as Content | undefined;
+    if (!last) break;
+
+    if (last.type === "break") {
+      paragraph.children.pop();
+      continue;
+    }
+
+    if (last.type === "text") {
+      const textNode = last as Text;
+      const trimmed = textNode.value?.replace(/\s+$/, "") ?? "";
+      if (trimmed.length === 0) {
+        paragraph.children.pop();
+        continue;
+      }
+      textNode.value = trimmed;
+    }
+    break;
+  }
+}
+
+function trimLeadingWhitespaceNodes(nodes: Content[]) {
+  while (nodes.length > 0) {
+    const first = nodes[0];
+    if (first?.type === "text") {
+      const textNode = first as Text;
+      textNode.value = textNode.value?.replace(/^\s+/, "") ?? "";
+      if (textNode.value.length === 0) {
+        nodes.shift();
+        continue;
+      }
+      break;
+    }
+    if (first?.type === "break") {
+      nodes.shift();
+      continue;
+    }
+    break;
+  }
+}
+
 function mergeFollowingParagraph(parent: Parent, index: number, target: Paragraph) {
   const nextNode = parent.children[index];
   if (!nextNode || nextNode.type !== "paragraph") return;
 
   const nextParagraph = nextNode as Paragraph;
   const nextChildren = cloneNodes(nextParagraph.children);
-
-  if (nextChildren.length > 0) {
-    const first = nextChildren[0];
-    if (first?.type === "text") {
-      first.value = first.value?.replace(/^\s+/, "") ?? "";
-      if (first.value.length === 0) {
-        nextChildren.shift();
-      }
-    }
-  }
+  trimLeadingWhitespaceNodes(nextChildren);
 
   if (nextChildren.length > 0) {
     target.children.push(...nextChildren);

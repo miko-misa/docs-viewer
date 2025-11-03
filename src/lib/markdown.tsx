@@ -6,7 +6,6 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import remarkDirective from "remark-directive";
 import remarkRehype from "remark-rehype";
-import rehypeTypst from "@myriaddreamin/rehype-typst";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeSlug from "rehype-slug";
 import rehypePrettyCode, { type Options as PrettyCodeOptions } from "rehype-pretty-code";
@@ -38,6 +37,8 @@ import { LabelIndex } from "./refs";
 import { remarkCollectLabels } from "./remark-labels";
 import { remarkResolveReferences } from "./remark-references";
 import { remarkAnnotations } from "./remark-annotations";
+import { rehypeTypstWithProlog } from "./rehype-typst-curryst";
+import { CURRYST_TYPST_PROLOG } from "./typst-curryst-prolog";
 
 type DirectiveNode = Parent & {
   name?: string;
@@ -72,6 +73,34 @@ function getDirectiveContentText(node: Parent): string {
     }
   }
   return text;
+}
+
+function getProofTreeTypstBody(directive: DirectiveNode): string {
+  if (!Array.isArray(directive.children)) {
+    return "";
+  }
+
+  const parts: string[] = [];
+
+  for (const child of directive.children) {
+    if (!child || child.type !== "paragraph" || !Array.isArray(child.children)) continue;
+
+    for (const paragraphChild of child.children) {
+      if (!paragraphChild) continue;
+
+      if (paragraphChild.type === "text" && typeof paragraphChild.value === "string") {
+        parts.push(paragraphChild.value);
+      } else if (paragraphChild.type === "break") {
+        parts.push("\n");
+      } else if (paragraphChild.type === "inlineMath" && typeof paragraphChild.value === "string") {
+        parts.push(`$${paragraphChild.value}$`);
+      }
+    }
+
+    parts.push("\n");
+  }
+
+  return parts.join("").trim();
 }
 
 function isStandaloneDirectiveCloser(node: unknown): node is Parent {
@@ -211,6 +240,25 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
       }
     }
 
+    if (directive.name === "prooftree" && parent && typeof index === "number") {
+      const typstBody = getProofTreeTypstBody(directive);
+      if (!typstBody) {
+        parent.children.splice(index, 1);
+        return;
+      }
+
+      const classNames = Array.from(new Set([...classes, "typst-prooftree"]));
+      const expression = typstBody.startsWith("prooftree(") ? typstBody : `prooftree(${typstBody})`;
+      directive.data = directive.data || {};
+      directive.data.hName = "div";
+      directive.data.hProperties = {
+        className: classNames,
+        "data-typst-expression": expression,
+      };
+      directive.children = [];
+      return;
+    }
+
     if (
       (directive.name === "column" || directive.name === "column-toc") &&
       directive.children &&
@@ -224,18 +272,23 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
 
       for (let i = start; i < parentChildren.length; i++) {
         const sibling = parentChildren[i];
+
+        if (isStandaloneDirectiveCloser(sibling)) {
+          closingIndex = i;
+          break;
+        }
+
         if (
           sibling.type === "containerDirective" ||
           sibling.type === "leafDirective" ||
           sibling.type === "textDirective"
         ) {
-          break;
+          const siblingDirective = sibling as DirectiveNode;
+          const siblingName = siblingDirective.name ?? "";
+          if (siblingName !== "annotation") {
+            break;
+          }
         }
-        if (isStandaloneDirectiveCloser(sibling)) {
-          closingIndex = i;
-          break;
-        }
-        // Continue scanning for a closer while staying before any subsequent directive sibling.
       }
 
       if (closingIndex !== -1) {
@@ -312,6 +365,7 @@ const sanitizeSchema: Schema = {
       "data-border-color",
       "data-border-width",
       "data-border-style",
+      "data-typst-expression",
     ],
     img: ["src", "alt", "title", "width", "height"],
     figure: ["data-rehype-pretty-code-figure"],
@@ -351,8 +405,13 @@ const sanitizeSchema: Schema = {
       "id",
       "stroke",
       "stroke-width",
+      "strokeWidth",
       "stroke-linecap",
+      "strokeLinecap",
       "stroke-linejoin",
+      "strokeLinejoin",
+      "stroke-miterlimit",
+      "strokeMiterlimit",
     ],
     g: ["data-tid", "transform", "fill", "class"],
     use: ["href", "fill", "transform", "x", "y", "xlink:href"],
@@ -539,15 +598,12 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkResolveReferences, { labelIndex })
     .use(remarkAnnotations, { labelIndex })
     .use(remarkRehype, { allowDangerousHtml: false })
+    .use(rehypeTypstWithProlog, {
+      prolog: CURRYST_TYPST_PROLOG,
+    })
     .use(rehypePrettyCode, rehypePrettyCodeOptions)
     .use(rehypeEnhanceCodeBlocks)
     .use(rehypeSlug)
-    .use(rehypeTypst, {
-      // Typstのレンダリングオプション
-      renderOptions: {
-        format: "svg",
-      },
-    })
     .use(enforceInlineMathRendering)
     .use(preserveTypstStyles)
     .use(replaceCheckmarks)
