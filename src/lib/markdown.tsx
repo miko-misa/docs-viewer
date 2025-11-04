@@ -162,7 +162,10 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
     const isColumnToc = directive.name === "column-toc";
     const baseName = isColumnToc ? "column" : directive.name || "";
 
-    const classes = [`directive`, baseName ? `directive-${baseName}` : null].filter(Boolean);
+    const classes =
+      directive.name === "prooftree"
+        ? []
+        : [`directive`, baseName ? `directive-${baseName}` : null].filter(Boolean);
 
     const hProperties: Record<string, unknown> = {
       ...(directive.attributes ?? {}),

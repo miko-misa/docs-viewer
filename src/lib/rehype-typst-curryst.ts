@@ -279,17 +279,28 @@ function replaceWithResult(
     const baselinePosition = result.baselinePosition ?? height;
     const shift = height - baselinePosition;
     const shiftEm = shift / defaultEm;
-    svgElement.properties.style = `vertical-align: -${shiftEm}em;`;
+    const styleEntries = [`vertical-align: -${shiftEm}em`];
+    const targetClasses = target.properties?.className;
+    const hasProoftreeClass = Array.isArray(targetClasses)
+      ? targetClasses.map(String).includes("typst-prooftree")
+      : typeof targetClasses === "string"
+        ? targetClasses.split(/\s+/).includes("typst-prooftree")
+        : false;
     svgElement.properties.height = `${height / defaultEm}em`;
     svgElement.properties.width = `${width / defaultEm}em`;
     if (!svgElement.classNames) {
       svgElement.classNames = [];
     }
+    if (hasProoftreeClass && !svgElement.classNames.includes("typst-prooftree")) {
+      svgElement.classNames.push("typst-prooftree");
+    }
     if (displayMode) {
-      svgElement.properties.style += "; display: block; margin: 0 auto;";
+      const marginValue = hasProoftreeClass ? "1rem auto" : "0 auto";
+      styleEntries.push("display: block", `margin: ${marginValue}`);
     } else {
       svgElement.classNames.push("typst-inline");
     }
+    svgElement.properties.style = `${styleEntries.join("; ")};`;
     replacement = root.children as ElementContent[];
   }
 
