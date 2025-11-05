@@ -126,6 +126,16 @@ body {
   font-family: var(--font-sans);
 }
 
+.doc-main {
+  margin-right: 0;
+}
+
+@media (min-width: 1024px) {
+  .doc-main {
+    margin-right: clamp(2rem, 15vw, 300px);
+  }
+}
+
 /* テキスト選択のスタイル */
 ::selection {
   background: #475569; /* 青みがかった灰色 */

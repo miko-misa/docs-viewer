@@ -76,7 +76,7 @@ export function DocLayout({
         >
           <Toc items={toc} />
         </aside>
-        <main className="flex-1" style={{ marginRight: "clamp(2rem, 15vw, 300px)" }}>
+        <main className="doc-main flex-1">
           <article className="docs-content mx-auto w-full max-w-3xl">
             {children}
             {(navigation?.previous || navigation?.next) && (
