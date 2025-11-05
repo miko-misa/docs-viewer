@@ -20,7 +20,7 @@ title: 自然演繹法とその健全性・完全性
 
 1. **連言の導入規則**
    $$
-   Gamma tack.r.short phi, med Delta tack.r.short psi "ならば" Gamma union Delta tack.r.short (phi and psi)
+   Gamma tack.r.short phi, med Delta tack.r.short psi => Gamma union Delta tack.r.short (phi and psi)
    $$
    導出されている$phi, psi$から$phi and psi$を導出できる。
    :::prooftree
@@ -33,7 +33,7 @@ title: 自然演繹法とその健全性・完全性
    :::
 2. **連言の消去規則**
    $$
-   Gamma tack.r.short (phi and psi) "ならば" Gamma tack.r.short phi, med Gamma tack.r.short psi
+   Gamma tack.r.short (phi and psi) => Gamma tack.r.short phi, med Gamma tack.r.short psi
    $$
    導出されている$phi and psi$から$phi$もしくは$psi$を導出できる。以下の証明図は$phi$を導出する場合である。
    :::prooftree
@@ -46,7 +46,7 @@ title: 自然演繹法とその健全性・完全性
    $"E"_L$は左($phi$)を導出するという意味であり、右($psi$)を導出する場合は$"E"_R$と表記する。
 3. **含意の導入規則**
    $$
-   Gamma tack.r.short psi "ならば" Gamma \\ {phi} tack.r.short (phi -> psi)
+   Gamma tack.r.short psi => Gamma \\ {phi} tack.r.short (phi -> psi)
    $$
    $phi$を仮定して、もしくは仮定せずに$psi$を導出できている場合
    :::annotation
@@ -63,7 +63,7 @@ title: 自然演繹法とその健全性・完全性
    このとき、仮定$phi$は$Gamma$に含まれている場合$Gamma$から取り除かれる。$phi$がそもそも仮定に含まれていない場合について下で詳しく述べる。
 4. **含意の消去規則**
    $$
-   Gamma tack.r.short phi, med Delta tack.r.short (phi -> psi) "ならば" Gamma union Delta tack.r.short psi
+   Gamma tack.r.short phi, med Delta tack.r.short (phi -> psi) => Gamma union Delta tack.r.short psi
    $$
    導出されている$phi$と$phi -> psi$から、$psi$を導出できる。
    :::prooftree
@@ -76,7 +76,7 @@ title: 自然演繹法とその健全性・完全性
    :::
 5. **矛盾の消去規則** （爆発則）
    $$
-   Gamma tack.r.short bot "ならば" Gamma tack.r.short phi
+   Gamma tack.r.short bot => Gamma tack.r.short phi
    $$
    仮定から$bot$が導出できている場合、どんな命題$phi$も導出できる。$phi$が$Gamma$に含まれている必要はない。
    :::prooftree
@@ -90,7 +90,7 @@ title: 自然演繹法とその健全性・完全性
 6. **背理法** （古典論理）
    $not phi in Gamma$であるとき、
    $$
-   Gamma tack.r.short bot "ならば" Gamma \\ {not phi} tack.r.short phi
+   Gamma tack.r.short bot => Gamma \\ {not phi} tack.r.short phi
    $$
    $not phi approx phi -> bot$を仮定して$bot$が導出できている場合、$phi$を導出できる。使用した仮定には$[]$をつけて右上に数字を振る。以下の証明図では$ell$としている。
    :::prooftree
