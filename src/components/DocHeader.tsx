@@ -18,11 +18,15 @@ const EXTRA_PADDING_Y = 20; // additional px when expanded
 const META_MAX_HEIGHT = 64; // px
 const META_TRANSLATE = 10; // px
 const GROUP_MAX_HEIGHT = 18; // px
+const TITLE_MIN_SIZE = 1.2; // rem
+const TITLE_FLUID_BASE = 0.9; // rem
+const TITLE_FLUID_VW = 2.6; // vw factor
 const TITLE_BASE_SIZE = 1.75; // rem
 const TITLE_EXTRA_SIZE = 0.55; // rem
 const TITLE_BASE_LINE_HEIGHT = 1.15;
 const TITLE_EXTRA_LINE_HEIGHT = 0.12;
 const SCROLL_ACCELERATION = 1.2;
+const PROGRESS_SNAP = 0.05;
 const PROGRESS_VAR = "--doc-header-progress";
 
 export function DocHeader({
@@ -37,13 +41,26 @@ export function DocHeader({
   const targetRef = useRef(1);
   const rafRef = useRef<number | null>(null);
 
+  const clamp = (value: number, min: number, max: number, snap = 0) => {
+    const clamped = Math.min(max, Math.max(min, value));
+    if (snap > 0) {
+      if (Math.abs(clamped - min) < snap) return min;
+      if (Math.abs(max - clamped) < snap) return max;
+    }
+    return clamped;
+  };
+
   useEffect(() => {
     const headerEl = headerRef.current;
     if (!headerEl) return;
 
     const applyProgress = (value: number) => {
-      progressRef.current = value;
-      headerEl.style.setProperty(PROGRESS_VAR, value.toString());
+      if (Math.abs(progressRef.current - value) < PROGRESS_SNAP) {
+        return;
+      }
+      const snapped = clamp(value, 0, 1, PROGRESS_SNAP);
+      progressRef.current = snapped;
+      headerEl.style.setProperty(PROGRESS_VAR, snapped.toString());
     };
 
     const step = () => {
@@ -51,13 +68,13 @@ export function DocHeader({
       const target = targetRef.current;
       const diff = target - current;
 
-      if (Math.abs(diff) < 0.002) {
+      if (Math.abs(diff) < PROGRESS_SNAP) {
         applyProgress(target);
         rafRef.current = null;
         return;
       }
 
-      const next = current + diff * 0.48;
+      const next = current + diff * 0.44;
       applyProgress(next);
       rafRef.current = window.requestAnimationFrame(step);
     };
@@ -72,8 +89,8 @@ export function DocHeader({
       const scrollY = window.scrollY || window.pageYOffset;
       const effectiveScroll = scrollY * SCROLL_ACCELERATION;
       const rawProgress = 1 - effectiveScroll / COLLAPSE_RANGE;
-      const clamped = Math.min(1, Math.max(0, rawProgress));
-      if (Math.abs(targetRef.current - clamped) < 0.001) return;
+      const clamped = clamp(rawProgress, 0, 1, 0);
+      if (Math.abs(targetRef.current - clamped) < PROGRESS_SNAP) return;
       targetRef.current = clamped;
       schedule();
     };
@@ -151,8 +168,12 @@ export function DocHeader({
               className="font-semibold"
               style={{
                 color: "var(--foreground)",
-                fontSize: `calc(${TITLE_BASE_SIZE}rem + ${TITLE_EXTRA_SIZE}rem * ${progressExpr})`,
+                fontSize: `clamp(${TITLE_MIN_SIZE}rem, calc(${TITLE_FLUID_BASE}rem + ${TITLE_FLUID_VW}vw), calc(${TITLE_BASE_SIZE}rem + ${TITLE_EXTRA_SIZE}rem * ${progressExpr}))`,
                 lineHeight: `calc(${TITLE_BASE_LINE_HEIGHT} + ${TITLE_EXTRA_LINE_HEIGHT} * ${progressExpr})`,
+                maxWidth: "100%",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
               }}
             >
               {title}
