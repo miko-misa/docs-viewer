@@ -59,7 +59,9 @@ export default function RootLayout({
           {themeInitScript}
         </Script>
       </head>
-      <body className={`${notoSans.variable} ${jetBrainsMono.variable} ${mPlusCode.variable} antialiased`}>
+      <body
+        className={`${notoSans.variable} ${jetBrainsMono.variable} ${mPlusCode.variable} antialiased`}
+      >
         <ThemeProvider>
           <PreviewProvider>{children}</PreviewProvider>
         </ThemeProvider>

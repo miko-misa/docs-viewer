@@ -35,8 +35,13 @@
 
   --color-background: #fafbfc;
   --color-foreground: #1e293b;
-  --font-sans: var(--font-noto-sans, "Noto Sans JP"), "Noto Sans", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic Medium", system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono, var(--font-mplus1-code, "JetBrains Mono")), "M PLUS 1 Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans:
+    var(--font-noto-sans, "Noto Sans JP"), "Noto Sans", "Hiragino Kaku Gothic ProN",
+    "Hiragino Sans", "Yu Gothic Medium", system-ui, sans-serif;
+  --font-mono:
+    var(--font-jetbrains-mono, var(--font-mplus1-code, "JetBrains Mono")), "M PLUS 1 Code",
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
 }
 
 :root[data-theme="dark"] {
@@ -705,7 +710,6 @@ svg.typst-block {
   background: none;
   padding: 0;
 }
-
 
 .docs-content pre[data-theme] .line {
   position: relative;

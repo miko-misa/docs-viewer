@@ -1,66 +1,68 @@
-'use client';
+"use client";
 
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-type Theme = 'light' | 'dark';
+type Theme = "light" | "dark";
 
 interface ThemeContextValue {
   theme: Theme;
   setTheme: (next: Theme) => void;
 }
 
-const STORAGE_KEY = 'docs-viewer-theme';
+const STORAGE_KEY = "docs-viewer-theme";
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function applyTheme(next: Theme) {
+  if (typeof document === "undefined") {
+    return;
+  }
   const root = document.documentElement;
-  root.setAttribute('data-theme', next);
+  root.setAttribute("data-theme", next);
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light');
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+    const root = window.document.documentElement;
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === "light" || stored === "dark") {
+      applyTheme(stored);
+      return stored;
+    }
+
+    const attribute = root.getAttribute("data-theme");
+    if (attribute === "light" || attribute === "dark") {
+      return attribute;
+    }
+
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initial = prefersDark ? "dark" : "light";
+    applyTheme(initial);
+    return initial;
+  });
 
   useEffect(() => {
-    const root = document.documentElement;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-
-    if (stored === 'light' || stored === 'dark') {
-      applyTheme(stored);
-      setThemeState(stored);
+    if (typeof window === "undefined") {
       return;
     }
 
-    const attribute = root.getAttribute('data-theme');
-    if (attribute === 'light' || attribute === 'dark') {
-      setThemeState(attribute);
-    } else {
-      const prefersDark = media.matches;
-      const initial = prefersDark ? 'dark' : 'light';
-      applyTheme(initial);
-      setThemeState(initial);
-    }
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleChange = (event: MediaQueryListEvent) => {
       const persisted = window.localStorage.getItem(STORAGE_KEY);
-      if (persisted === 'light' || persisted === 'dark') {
+      if (persisted === "light" || persisted === "dark") {
         return;
       }
-      const nextTheme: Theme = event.matches ? 'dark' : 'light';
+      const nextTheme: Theme = event.matches ? "dark" : "light";
       applyTheme(nextTheme);
       setThemeState(nextTheme);
     };
 
-    media.addEventListener('change', handleChange);
-    return () => media.removeEventListener('change', handleChange);
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
   }, []);
 
   const setTheme = useCallback((next: Theme) => {
@@ -77,7 +79,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
 }

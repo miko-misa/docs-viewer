@@ -1,24 +1,24 @@
 /**
  * remark plugin: ラベルの収集と番号付け
- * 
+ *
  * - 見出しから {#label-id} を抽出
  * - columnディレクティブから {#label-id} を抽出
  * - ラベルインデックスを構築
  */
 
-import type { Root, Heading, Text } from 'mdast';
-import type { Plugin } from 'unified';
-import { visit } from 'unist-util-visit';
-import { LabelIndex } from './refs';
+import type { Root, Heading, Text, Content, PhrasingContent, Paragraph } from "mdast";
+import type { Plugin } from "unified";
+import { visit } from "unist-util-visit";
+import { LabelIndex } from "./refs";
 
 interface DirectiveNode {
-  type: 'containerDirective' | 'leafDirective' | 'textDirective';
+  type: "containerDirective" | "leafDirective" | "textDirective";
   name: string;
   attributes?: Record<string, string>;
-  children?: any[];
+  children?: Content[];
   data?: {
     hName?: string;
-    hProperties?: Record<string, any>;
+    hProperties?: Record<string, unknown>;
     directiveTitle?: string; // remarkTransformDirectivesで設定されるタイトル
   };
 }
@@ -35,16 +35,16 @@ export const remarkCollectLabels: Plugin<[PluginOptions], Root> = (options) => {
 
   return (tree: Root) => {
     // 見出しからラベルを収集
-    visit(tree, 'heading', (node: Heading) => {
+    visit(tree, "heading", (node: Heading) => {
       const labelId = extractLabelFromHeading(node);
       if (labelId) {
         const normalizedId = LabelIndex.normalizeId(labelId);
         // ラベル除去後のテキストを取得
         const title = extractHeadingText(node);
-        
+
         labelIndex.add({
           id: normalizedId,
-          type: 'heading',
+          type: "heading",
           elementId: normalizedId,
           title,
         });
@@ -57,23 +57,24 @@ export const remarkCollectLabels: Plugin<[PluginOptions], Root> = (options) => {
     });
 
     // columnディレクティブからラベルを収集
-    visit(tree, (node: any) => {
-      if (
-        (node.type === 'containerDirective' || node.type === 'leafDirective') &&
-        (node.name === 'column' || node.name === 'column-toc')
-      ) {
-        const directive = node as DirectiveNode;
+    visit(tree, (node) => {
+      if (!isDirectiveNode(node)) {
+        return;
+      }
+
+      if (node.name === "column" || node.name === "column-toc") {
+        const directive = node;
         const { label: labelId, title: extractedTitle } = extractLabelFromDirective(directive);
-        
+
         // remarkTransformDirectivesで保存されたタイトルを優先的に使用
         const title = (directive.data?.directiveTitle as string) || extractedTitle;
-        
+
         if (labelId) {
           const normalizedId = LabelIndex.normalizeId(labelId);
 
           labelIndex.add({
             id: normalizedId,
-            type: 'column',
+            type: "column",
             elementId: normalizedId,
             title,
           });
@@ -93,20 +94,20 @@ export const remarkCollectLabels: Plugin<[PluginOptions], Root> = (options) => {
  */
 function extractLabelFromHeading(node: Heading): string | null {
   if (!node.children || node.children.length === 0) return null;
-  
+
   const firstChild = node.children[0];
-  
+
   // 見出しの最初に (label)= があるかチェック
-  if (firstChild && firstChild.type === 'text') {
+  if (firstChild && firstChild.type === "text") {
     const text = (firstChild as Text).value;
     const match = text.match(/^\(([a-z][a-z0-9-:]*)\)=\s*/);
-    
+
     if (match) {
       // ラベル部分を削除（新しいオブジェクトを作成）
-      const newValue = text.replace(/^\([a-z][a-z0-9-:]*\)=\s*/, '');
-      
+      const newValue = text.replace(/^\([a-z][a-z0-9-:]*\)=\s*/, "");
+
       // 元のオブジェクトを変更するのではなく、新しい配列を作成
-      const newChildren = [...node.children];
+      const newChildren = [...node.children] as PhrasingContent[];
       if (newValue) {
         newChildren[0] = {
           ...firstChild,
@@ -116,12 +117,12 @@ function extractLabelFromHeading(node: Heading): string | null {
         // ラベルのみの場合は削除
         newChildren.shift();
       }
-      node.children = newChildren as any;
-      
+      node.children = newChildren;
+
       return match[1];
     }
   }
-  
+
   return null;
 }
 
@@ -130,12 +131,12 @@ function extractLabelFromHeading(node: Heading): string | null {
  */
 function extractHeadingText(node: Heading): string {
   return node.children
-    .map((child: any) => {
-      if (child.type === 'text') return child.value;
-      if (child.type === 'inlineCode') return child.value;
-      return '';
+    .map((child: Content) => {
+      if (child.type === "text") return child.value;
+      if (child.type === "inlineCode") return child.value;
+      return "";
     })
-    .join('')
+    .join("")
     .trim();
 }
 
@@ -144,7 +145,7 @@ function extractHeadingText(node: Heading): string {
  */
 function extractLabelFromDirective(node: DirectiveNode): { label: string | null; title: string } {
   let label: string | null = null;
-  let title = '';
+  let title = "";
 
   // attributes から直接取得を試みる
   if (node.attributes?.label) {
@@ -154,20 +155,20 @@ function extractLabelFromDirective(node: DirectiveNode): { label: string | null;
   // 子要素のテキストから (label)= と @title: を探す
   if (node.children && node.children.length > 0) {
     for (const child of node.children) {
-      if (child.type === 'paragraph' && child.children) {
+      if (child.type === "paragraph" && Array.isArray(child.children)) {
         // テキストを再構成
-        let text = '';
-        for (const textNode of child.children) {
-          if (textNode.type === 'text') {
-            text += textNode.value;
+        let text = "";
+        for (const textNode of child.children as Content[]) {
+          if (textNode.type === "text") {
+            text += textNode.value ?? "";
           }
         }
-        
-        const lines = text.split('\n');
-        
+
+        const lines = text.split("\n");
+
         for (const line of lines) {
           const trimmed = line.trim();
-          
+
           // ラベルをチェック
           if (!label) {
             const labelMatch = trimmed.match(/^\(([a-z][a-z0-9-:]*)\)=\s*$/);
@@ -175,29 +176,29 @@ function extractLabelFromDirective(node: DirectiveNode): { label: string | null;
               label = labelMatch[1];
             }
           }
-          
+
           // タイトルをチェック
-          if (trimmed.startsWith('@title:')) {
+          if (trimmed.startsWith("@title:")) {
             title = trimmed.substring(7).trim();
           }
         }
       }
     }
-    
+
     // ラベルが見つかった場合、コンテンツから削除
     if (label) {
       const firstChild = node.children[0];
-      if (firstChild && firstChild.type === 'paragraph' && firstChild.children) {
-        const firstText = firstChild.children[0];
-        
-        if (firstText && firstText.type === 'text') {
-          const match = firstText.value.match(/^\(([a-z][a-z0-9-:]*)\)=\s*/);
+      if (firstChild && firstChild.type === "paragraph" && Array.isArray(firstChild.children)) {
+        const firstText = firstChild.children[0] as Content | undefined;
+
+        if (firstText && firstText.type === "text") {
+          const match = firstText.value?.match(/^\(([a-z][a-z0-9-:]*)\)=\s*/);
           if (match) {
             // ラベル部分を削除（新しいオブジェクトを作成）
-            const newValue = firstText.value.replace(/^\([a-z][a-z0-9-:]*\)=\s*/, '');
-            
+            const newValue = (firstText.value ?? "").replace(/^\([a-z][a-z0-9-:]*\)=\s*/, "");
+
             // 新しい children 配列を作成
-            const newParagraphChildren = [...firstChild.children];
+            const newParagraphChildren = [...firstChild.children] as PhrasingContent[];
             if (newValue) {
               newParagraphChildren[0] = {
                 ...firstText,
@@ -207,13 +208,13 @@ function extractLabelFromDirective(node: DirectiveNode): { label: string | null;
               // ラベルのみの場合は削除
               newParagraphChildren.shift();
             }
-            
+
             // paragraph の children を更新
-            const newParagraph = {
+            const newParagraph: Paragraph = {
               ...firstChild,
               children: newParagraphChildren,
             };
-            
+
             // directive の children を更新
             const newDirectiveChildren = [...node.children];
             if (newParagraphChildren.length === 0) {
@@ -222,7 +223,7 @@ function extractLabelFromDirective(node: DirectiveNode): { label: string | null;
             } else {
               newDirectiveChildren[0] = newParagraph;
             }
-            node.children = newDirectiveChildren as any;
+            node.children = newDirectiveChildren as Content[];
           }
         }
       }
@@ -230,4 +231,16 @@ function extractLabelFromDirective(node: DirectiveNode): { label: string | null;
   }
 
   return { label, title };
+}
+
+function isDirectiveNode(node: unknown): node is DirectiveNode {
+  if (typeof node !== "object" || node === null) return false;
+
+  const candidate = node as Partial<DirectiveNode>;
+  return (
+    (candidate.type === "containerDirective" ||
+      candidate.type === "leafDirective" ||
+      candidate.type === "textDirective") &&
+    typeof candidate.name === "string"
+  );
 }

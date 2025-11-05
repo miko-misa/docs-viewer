@@ -1,7 +1,7 @@
-export const CURRYST_TYPST_PROLOG = String.raw`
+export const CURRYST_TYPST_PROLOG = `
 /// Creates an inference rule.
 ///
-/// You can render a rule created with this function using the `prooftree`
+/// You can render a rule created with this function using the 'prooftree'
 /// function.
 #let rule(
   /// The label of the rule, displayed on the left of the horizontal bar.
@@ -22,7 +22,7 @@ export const CURRYST_TYPST_PROLOG = String.raw`
   assert.eq(
     premises.named().len(),
     0,
-    message: "unexpected named arguments to `rule`",
+    message: "unexpected named arguments to 'rule'",
   )
   (
     label: label,
@@ -36,7 +36,7 @@ export const CURRYST_TYPST_PROLOG = String.raw`
 #let prooftree(
   /// The rule to lay out.
   ///
-  /// Such a rule can be constructed using the `rule` function.
+  /// Such a rule can be constructed using the 'rule' function.
   rule,
   /// The minimum amount of space between two premises.
   min-premise-spacing: 15pt,
@@ -70,7 +70,7 @@ export const CURRYST_TYPST_PROLOG = String.raw`
   /// Lays out some content.
   ///
   /// This function simply wraps the passed content in the usual
-  /// `(content: .., left-blank: .., right-blank: ..)` dictionary.
+  /// '(content: .., left-blank: .., right-blank: ..)' dictionary.
   let layout-content(content) = {
     // We wrap the content in a box with fixed dimensions so that fractional units
     // don't come back to haunt us later.
@@ -91,8 +91,8 @@ export const CURRYST_TYPST_PROLOG = String.raw`
   let layout-premises(
     /// Each laid out premise.
     ///
-    /// Must be an array of ditionaries with `content`, `left-blank` and
-    /// `right-blank` attributes.
+    /// Must be an array of ditionaries with 'content', 'left-blank' and
+    /// 'right-blank' attributes.
     premises,
     /// The minimum amount between each premise.
     min-spacing,
@@ -153,7 +153,7 @@ export const CURRYST_TYPST_PROLOG = String.raw`
   let layout-leaf-premises(
     /// Each laid out premise.
     ///
-    /// Must be an array of content-like (meaning `content`, `string`, etc.).
+    /// Must be an array of content-like (meaning 'content', 'string', etc.).
     premises,
     /// The minimum amount between each premise.
     min-spacing,
@@ -201,11 +201,11 @@ export const CURRYST_TYPST_PROLOG = String.raw`
     hang,
     /// The label of the rule, displayed on the left of the bar.
     ///
-    /// If this is `none`, no label is displayed.
+    /// If this is 'none', no label is displayed.
     label,
     /// The name of the rule, displayed on the right of the bar.
     ///
-    /// If this is `none`, no name is displayed.
+    /// If this is 'none', no name is displayed.
     name,
     /// The space to leave between the label and the bar, and between the bar
     /// and the name.
@@ -271,8 +271,8 @@ export const CURRYST_TYPST_PROLOG = String.raw`
   let layout-rule(
     /// The laid out premises.
     ///
-    /// This must be a dictionary with `content`, `left-blank`
-    /// and `right-blank` attributes.
+    /// This must be a dictionary with 'content', 'left-blank'
+    /// and 'right-blank' attributes.
     premises,
     /// The conclusion, displayed below the bar.
     conclusion,
@@ -282,11 +282,11 @@ export const CURRYST_TYPST_PROLOG = String.raw`
     bar-hang,
     /// The label of the rule, displayed on the left of the bar.
     ///
-    /// If this is `none`, no label is displayed.
+    /// If this is 'none', no label is displayed.
     label,
     /// The name of the rule, displayed on the right of the bar.
     ///
-    /// If this is `none`, no name is displayed.
+    /// If this is 'none', no name is displayed.
     name,
     /// The space to leave between the label and the bar, and between the bar
     /// and the name.
@@ -361,7 +361,7 @@ export const CURRYST_TYPST_PROLOG = String.raw`
     rule,
     /// The available width for the tree.
     ///
-    /// `none` is interpreted as infinite available width.
+    /// 'none' is interpreted as infinite available width.
     ///
     /// Ideally, the width of the returned tree should be bounded by this value,
     /// although no guarantee is made.

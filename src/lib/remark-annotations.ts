@@ -11,7 +11,6 @@ import type {
   DefinitionContent,
 } from "mdast";
 import type { Plugin } from "unified";
-import type { VFile } from "vfile";
 import { visit } from "unist-util-visit";
 import { LabelIndex } from "./refs";
 
@@ -48,8 +47,12 @@ const ANNOTATION_PREFIX = "annotation";
 type MarkerPlacementResult = "removed" | "replaced";
 
 export const remarkAnnotations: Plugin<[PluginOptions], Root> = ({ labelIndex }) => {
-  return (tree: Root, file?: VFile) => {
-    const sourceText = typeof file?.value === "string" ? file.value : String(file?.value ?? "");
+  return (tree: Root, file?: unknown) => {
+    const fileLike = file as { value?: unknown } | undefined;
+    const sourceText =
+      typeof fileLike?.value === "string"
+        ? (fileLike.value as string)
+        : String(fileLike?.value ?? "");
     const annotations: AnnotationInfo[] = [];
 
     visit(tree, (node, index, parent) => {

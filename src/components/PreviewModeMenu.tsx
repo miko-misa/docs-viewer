@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { usePreviewMode } from '@/contexts/PreviewContext';
-import { useTheme } from '@/contexts/ThemeContext';
+import React, { useState, useRef, useEffect } from "react";
+import { usePreviewMode } from "@/contexts/PreviewContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export function PreviewModeMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,8 +18,8 @@ export function PreviewModeMenu() {
     };
 
     checkWidth();
-    window.addEventListener('resize', checkWidth);
-    return () => window.removeEventListener('resize', checkWidth);
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
   }, []);
 
   // メニュー外クリックで閉じる
@@ -31,15 +31,15 @@ export function PreviewModeMenu() {
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
 
-  const effectiveMode = isNarrowScreen ? 'inline' : previewMode;
+  const effectiveMode = isNarrowScreen ? "inline" : previewMode;
 
   return (
     <div ref={menuRef} className="preview-mode-menu">
@@ -74,9 +74,9 @@ export function PreviewModeMenu() {
             </div>
           )}
           <button
-            className={`preview-mode-option ${effectiveMode === 'floating' ? 'active' : ''}`}
+            className={`preview-mode-option ${effectiveMode === "floating" ? "active" : ""}`}
             onClick={() => {
-              setPreviewMode('floating');
+              setPreviewMode("floating");
               setIsOpen(false);
             }}
             disabled={isNarrowScreen}
@@ -86,9 +86,9 @@ export function PreviewModeMenu() {
             <div className="preview-mode-option-desc">ドキュメント横に表示</div>
           </button>
           <button
-            className={`preview-mode-option ${effectiveMode === 'inline' ? 'active' : ''}`}
+            className={`preview-mode-option ${effectiveMode === "inline" ? "active" : ""}`}
             onClick={() => {
-              setPreviewMode('inline');
+              setPreviewMode("inline");
               setIsOpen(false);
             }}
             type="button"
@@ -98,9 +98,9 @@ export function PreviewModeMenu() {
           </button>
           <div className="preview-mode-header">テーマ</div>
           <button
-            className={`preview-mode-option ${theme === 'light' ? 'active' : ''}`}
+            className={`preview-mode-option ${theme === "light" ? "active" : ""}`}
             onClick={() => {
-              setTheme('light');
+              setTheme("light");
               setIsOpen(false);
             }}
             type="button"
@@ -109,9 +109,9 @@ export function PreviewModeMenu() {
             <div className="preview-mode-option-desc">背景を明るく表示</div>
           </button>
           <button
-            className={`preview-mode-option ${theme === 'dark' ? 'active' : ''}`}
+            className={`preview-mode-option ${theme === "dark" ? "active" : ""}`}
             onClick={() => {
-              setTheme('dark');
+              setTheme("dark");
               setIsOpen(false);
             }}
             type="button"

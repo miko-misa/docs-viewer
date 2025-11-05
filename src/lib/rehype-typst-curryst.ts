@@ -3,7 +3,6 @@ import { toText } from "hast-util-to-text";
 import { NodeCompiler } from "@myriaddreamin/typst-ts-node-compiler";
 import { visitParents, SKIP } from "unist-util-visit-parents";
 import type { Element, ElementContent, Parent as HastParent, Root } from "hast";
-import type { VFile } from "vfile";
 import type { Plugin } from "unified";
 
 export type RehypeTypstWithPrologOptions = {
@@ -21,27 +20,28 @@ export type RehypeTypstWithPrologOptions = {
 };
 
 type Settings = Readonly<RehypeTypstWithPrologOptions>;
-type MatchesEntry = Parameters<Parameters<typeof visitParents>[2]>;
+type MatchesEntry = [Element, HastParent[]];
+
+type MessageEmitter = {
+  message?: (reason: string, info?: Record<string, unknown>) => void;
+  value?: unknown;
+};
 
 /**
  * Extended rehype-typst that injects a Typst prolog (e.g. package imports)
  * before compiling math fragments to SVG.
  */
-export const rehypeTypstWithProlog: Plugin<[RehypeTypstWithPrologOptions?], Root> = (
-  options,
-) => {
+export const rehypeTypstWithProlog: Plugin<[RehypeTypstWithPrologOptions?], Root> = (options) => {
   const settings: Settings = options ?? {};
 
-  return async (tree: Root, file: VFile) => {
+  return async (tree: Root, file: unknown) => {
     const matches: MatchesEntry[] = [];
 
-    visitParents(tree, "element", (...args) => {
-      matches.push(args as MatchesEntry);
-      return tree;
+    visitParents(tree, "element", (node, parents) => {
+      matches.push([node as Element, parents as HastParent[]]);
     });
 
-    const processMatch = async (...args: MatchesEntry) => {
-      const [element, parents] = args;
+    const processMatch = async (element: Element, parents: HastParent[]) => {
       const properties = element.properties || {};
       const className = properties.className ?? properties.class;
       const classes = Array.isArray(className)
@@ -49,9 +49,10 @@ export const rehypeTypstWithProlog: Plugin<[RehypeTypstWithPrologOptions?], Root
         : typeof className === "string"
           ? className.split(/\s+/).filter(Boolean)
           : [];
-      const rawDirectiveExpression = typeof properties["data-typst-expression"] === "string"
-        ? properties["data-typst-expression"].trim()
-        : undefined;
+      const rawDirectiveExpression =
+        typeof properties["data-typst-expression"] === "string"
+          ? properties["data-typst-expression"].trim()
+          : undefined;
 
       const languageMath = classes.includes("language-math");
       const mathDisplay = classes.includes("math-display");
@@ -77,7 +78,7 @@ export const rehypeTypstWithProlog: Plugin<[RehypeTypstWithPrologOptions?], Root
             const result = await renderToSvgString(expression, true, settings.prolog);
             replaceWithResult(parent as HastParent, element, result, true);
           } catch (error) {
-            file.message("Could not render prooftree", {
+            (file as MessageEmitter | undefined)?.message?.("Could not render prooftree", {
               ancestors: [...parents, element],
               cause: error instanceof Error ? error : new Error(String(error)),
               place: element.position,
@@ -103,8 +104,7 @@ export const rehypeTypstWithProlog: Plugin<[RehypeTypstWithPrologOptions?], Root
       if (
         element.tagName === "code" &&
         languageMath &&
-        parent &&
-        parent.type === "element" &&
+        isElementNode(parent) &&
         parent.tagName === "pre"
       ) {
         scope = parent;
@@ -130,7 +130,7 @@ export const rehypeTypstWithProlog: Plugin<[RehypeTypstWithPrologOptions?], Root
         result = await renderToSvgString(value, displayMode, settings.prolog);
       } catch (error) {
         const cause = error instanceof Error ? error : new Error(String(error));
-        file.message("Could not render math with typst", {
+        (file as MessageEmitter | undefined)?.message?.("Could not render math with typst", {
           ancestors: [...parents, element],
           cause,
           place: element.position,
@@ -158,7 +158,7 @@ export const rehypeTypstWithProlog: Plugin<[RehypeTypstWithPrologOptions?], Root
       return SKIP;
     };
 
-    await Promise.all(matches.map((args) => processMatch(...args)));
+    await Promise.all(matches.map(([element, parents]) => processMatch(element, parents)));
   };
 };
 
@@ -183,8 +183,11 @@ async function renderWithCompiler(
     : buildInlineTemplate(code, prolog);
   const documentResult = compiler.compile({ mainFileContent });
   if (!documentResult.result) {
-    const diagnostics = compiler.fetchDiagnostics(documentResult.takeDiagnostics());
-    console.error(diagnostics);
+    const rawDiagnostics = documentResult.takeDiagnostics?.();
+    const diagnostics = rawDiagnostics ? compiler.fetchDiagnostics(rawDiagnostics) : [];
+    if (diagnostics.length > 0) {
+      console.error(diagnostics);
+    }
     throw new Error("Typst compilation failed");
   }
 
@@ -248,6 +251,10 @@ function formatProlog(prolog?: string) {
 function requiresMarkupRendering(code: string): boolean {
   if (!code) return false;
   return /\bprooftree\s*\(/.test(code) || /\bproof-tree\s*\(/.test(code);
+}
+
+function isElementNode(node: HastParent | undefined): node is Element {
+  return Boolean(node) && (node as Element).type === "element";
 }
 
 function replaceWithResult(

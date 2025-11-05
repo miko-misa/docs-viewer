@@ -55,10 +55,7 @@ export function Toc({ items }: TocProps) {
       return intersectionScore * 0.3 + positionScore * 0.4 + sectionScore * 0.3;
     };
 
-    const calculateSectionVisibility = (
-      heading: Element,
-      allHeadings: Element[]
-    ): number => {
+    const calculateSectionVisibility = (heading: Element, allHeadings: Element[]): number => {
       const currentIndex = allHeadings.indexOf(heading);
       const nextHeading = allHeadings[currentIndex + 1];
 
@@ -91,8 +88,7 @@ export function Toc({ items }: TocProps) {
       }
 
       const isAtBottom =
-        window.innerHeight + window.scrollY >=
-        document.documentElement.scrollHeight - 100;
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
       if (isAtBottom) {
         setActiveId(allElements[allElements.length - 1]?.id || "");
         return;
@@ -119,7 +115,7 @@ export function Toc({ items }: TocProps) {
         root: null,
         rootMargin: "-80px 0px -40% 0px",
         threshold: [0, 0.25, 0.5, 0.75, 1.0],
-      }
+      },
     );
 
     allElements.forEach((element) => observer.observe(element));
@@ -135,10 +131,8 @@ export function Toc({ items }: TocProps) {
   useEffect(() => {
     if (!activeId || !tocRef.current) return;
 
-    const activeLink = tocRef.current.querySelector(
-      `a[href="#${activeId}"]`
-    ) as HTMLElement;
-    
+    const activeLink = tocRef.current.querySelector(`a[href="#${activeId}"]`) as HTMLElement;
+
     if (!activeLink) return;
 
     const tocContainer = tocRef.current;
@@ -146,17 +140,14 @@ export function Toc({ items }: TocProps) {
     const linkRect = activeLink.getBoundingClientRect();
 
     // アクティブなリンクがコンテナ内に表示されているかチェック
-    const isVisible =
-      linkRect.top >= containerRect.top &&
-      linkRect.bottom <= containerRect.bottom;
+    const isVisible = linkRect.top >= containerRect.top && linkRect.bottom <= containerRect.bottom;
 
     if (!isVisible) {
       // スムーズにスクロール（リンクをコンテナの中央付近に配置）
-      const scrollTop = tocContainer.scrollTop;
       const linkOffsetTop = activeLink.offsetTop;
       const containerHeight = tocContainer.clientHeight;
       const linkHeight = activeLink.clientHeight;
-      
+
       // リンクをコンテナの上から1/3の位置に配置
       const targetScrollTop = linkOffsetTop - containerHeight / 3 + linkHeight / 2;
 

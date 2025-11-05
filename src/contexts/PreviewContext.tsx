@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from "react";
 
-type PreviewMode = 'inline' | 'floating';
+type PreviewMode = "inline" | "floating";
 
 interface PreviewContextType {
   previewMode: PreviewMode;
@@ -12,20 +12,18 @@ interface PreviewContextType {
 const PreviewContext = createContext<PreviewContextType | undefined>(undefined);
 
 export function PreviewProvider({ children }: { children: React.ReactNode }) {
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('floating');
-
-  // ローカルストレージから設定を読み込む
-  useEffect(() => {
-    const saved = localStorage.getItem('preview-mode');
-    if (saved === 'inline' || saved === 'floating') {
-      setPreviewMode(saved);
+  const [previewMode, setPreviewModeState] = useState<PreviewMode>(() => {
+    if (typeof window === "undefined") {
+      return "floating";
     }
-  }, []);
+    const saved = window.localStorage.getItem("preview-mode");
+    return saved === "inline" || saved === "floating" ? saved : "floating";
+  });
 
   // 設定をローカルストレージに保存
   const handleSetPreviewMode = (mode: PreviewMode) => {
-    setPreviewMode(mode);
-    localStorage.setItem('preview-mode', mode);
+    setPreviewModeState(mode);
+    window.localStorage.setItem("preview-mode", mode);
   };
 
   return (
@@ -38,7 +36,7 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
 export function usePreviewMode() {
   const context = useContext(PreviewContext);
   if (context === undefined) {
-    throw new Error('usePreviewMode must be used within a PreviewProvider');
+    throw new Error("usePreviewMode must be used within a PreviewProvider");
   }
   return context;
 }

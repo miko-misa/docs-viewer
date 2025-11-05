@@ -75,25 +75,52 @@ function getDirectiveContentText(node: Parent): string {
   return text;
 }
 
+function isParentNode(node: unknown): node is Parent {
+  return Boolean(node) && typeof node === "object" && Array.isArray((node as Parent).children);
+}
+
+function isDirectiveNode(node: unknown): node is DirectiveNode {
+  if (!node || typeof node !== "object") return false;
+  const candidate = node as Partial<DirectiveNode>;
+  if (
+    candidate.type !== "textDirective" &&
+    candidate.type !== "leafDirective" &&
+    candidate.type !== "containerDirective"
+  ) {
+    return false;
+  }
+  if (candidate.name !== undefined && typeof candidate.name !== "string") {
+    return false;
+  }
+  return true;
+}
+
 function getProofTreeTypstBody(directive: DirectiveNode): string {
   if (!Array.isArray(directive.children)) {
     return "";
   }
 
+  const children = directive.children as Parent["children"];
   const parts: string[] = [];
 
-  for (const child of directive.children) {
-    if (!child || child.type !== "paragraph" || !Array.isArray(child.children)) continue;
+  for (const child of children) {
+    if (!isParentNode(child) || child.type !== "paragraph" || !Array.isArray(child.children)) {
+      continue;
+    }
 
-    for (const paragraphChild of child.children) {
+    const paragraphChildren = child.children as Parent["children"];
+
+    for (const paragraphChild of paragraphChildren) {
       if (!paragraphChild) continue;
 
-      if (paragraphChild.type === "text" && typeof paragraphChild.value === "string") {
-        parts.push(paragraphChild.value);
-      } else if (paragraphChild.type === "break") {
+      const typed = paragraphChild as { type?: string; value?: unknown };
+
+      if (typed.type === "text" && typeof typed.value === "string") {
+        parts.push(typed.value);
+      } else if (typed.type === "break") {
         parts.push("\n");
-      } else if (paragraphChild.type === "inlineMath" && typeof paragraphChild.value === "string") {
-        parts.push(`$${paragraphChild.value}$`);
+      } else if (typed.type === "inlineMath" && typeof typed.value === "string") {
+        parts.push(`$${typed.value}$`);
       }
     }
 
@@ -269,24 +296,22 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
       typeof index === "number" &&
       Array.isArray((parent as Parent).children)
     ) {
-      const parentChildren = (parent as Parent).children as Parent[];
+      const parentChildren = Array.isArray((parent as Parent).children)
+        ? ((parent as Parent).children as Parent["children"])
+        : [];
       const start = index + 1;
       let closingIndex = -1;
 
       for (let i = start; i < parentChildren.length; i++) {
         const sibling = parentChildren[i];
 
-        if (isStandaloneDirectiveCloser(sibling)) {
+        if (sibling && isStandaloneDirectiveCloser(sibling)) {
           closingIndex = i;
           break;
         }
 
-        if (
-          sibling.type === "containerDirective" ||
-          sibling.type === "leafDirective" ||
-          sibling.type === "textDirective"
-        ) {
-          const siblingDirective = sibling as DirectiveNode;
+        if (sibling && isDirectiveNode(sibling)) {
+          const siblingDirective = sibling;
           const siblingName = siblingDirective.name ?? "";
           if (siblingName !== "annotation") {
             break;
@@ -297,7 +322,9 @@ const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
       if (closingIndex !== -1) {
         const movedNodes = parentChildren.slice(start, closingIndex);
         if (movedNodes.length > 0) {
-          const directiveChildren = directive.children as Parent[];
+          const directiveChildren = Array.isArray(directive.children)
+            ? (directive.children as Parent["children"])
+            : ((directive.children = []) as Parent["children"]);
           directiveChildren.push(...movedNodes);
         }
         parentChildren.splice(start, closingIndex - start);

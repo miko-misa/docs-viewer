@@ -17,4 +17,3 @@ export function DiffIcon({ type }: DiffIconProps) {
     </span>
   );
 }
-

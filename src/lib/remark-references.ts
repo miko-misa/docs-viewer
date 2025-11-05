@@ -1,13 +1,13 @@
 /**
  * remark plugin: 参照の解決
- * 
+ *
  * [文章](@label-id) および @label-id 形式の参照を検出し、リンクに変換します。
  */
 
-import type { Root, Link, Paragraph, PhrasingContent, Text } from 'mdast';
-import type { Plugin } from 'unified';
-import { visit, SKIP } from 'unist-util-visit';
-import { LabelIndex } from './refs';
+import type { Root, Link, Paragraph, PhrasingContent, Text } from "mdast";
+import type { Plugin } from "unified";
+import { visit, SKIP } from "unist-util-visit";
+import { LabelIndex } from "./refs";
 
 interface PluginOptions {
   labelIndex: LabelIndex;
@@ -21,11 +21,11 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
 
   return (tree: Root) => {
     // [文章](@label-id) 形式の link ノードを処理
-    visit(tree, 'link', (node: Link) => {
+    visit(tree, "link", (node: Link) => {
       const url = node.url;
-      
+
       // @label-id 形式のURLをチェック
-      if (url.startsWith('@')) {
+      if (url.startsWith("@")) {
         const labelId = url.substring(1);
         const normalizedId = LabelIndex.normalizeId(labelId);
         const labelInfo = labelIndex.get(normalizedId);
@@ -35,9 +35,9 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
           node.url = `#${labelInfo.elementId}`;
           node.data = {
             hProperties: {
-              'data-ref': normalizedId,
-              'data-ref-type': labelInfo.type,
-              'data-ref-title': labelInfo.title,
+              "data-ref": normalizedId,
+              "data-ref-type": labelInfo.type,
+              "data-ref-title": labelInfo.title,
             },
           };
         } else {
@@ -48,12 +48,12 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
     });
 
     // @label-id 単独形式を paragraph 内で検出
-    visit(tree, 'paragraph', (paragraph: Paragraph) => {
+    visit(tree, "paragraph", (paragraph: Paragraph) => {
       const newChildren: PhrasingContent[] = [];
       let modified = false;
 
       for (const child of paragraph.children) {
-        if (child.type !== 'text') {
+        if (child.type !== "text") {
           newChildren.push(child);
           continue;
         }
@@ -95,7 +95,7 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
           // 参照前のテキスト
           if (ref.start > lastEnd) {
             newChildren.push({
-              type: 'text',
+              type: "text",
               value: text.slice(lastEnd, ref.start),
             });
           }
@@ -103,21 +103,21 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
           if (labelInfo) {
             // ラベルが見つかった場合、リンクに変換（タイトルをリンクテキストに使用）
             newChildren.push({
-              type: 'link',
+              type: "link",
               url: `#${labelInfo.elementId}`,
-              children: [{ type: 'text', value: labelInfo.title }],
+              children: [{ type: "text", value: labelInfo.title }],
               data: {
                 hProperties: {
-                  'data-ref': normalizedId,
-                  'data-ref-type': labelInfo.type,
-                  'data-ref-title': labelInfo.title,
+                  "data-ref": normalizedId,
+                  "data-ref-type": labelInfo.type,
+                  "data-ref-title": labelInfo.title,
                 },
               },
             } as Link);
           } else {
             // ラベルが見つからない場合、元のテキストのまま（警告は出さない）
             newChildren.push({
-              type: 'text',
+              type: "text",
               value: ref.match,
             });
           }
@@ -128,7 +128,7 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
         // 残りのテキスト
         if (lastEnd < text.length) {
           newChildren.push({
-            type: 'text',
+            type: "text",
             value: text.slice(lastEnd),
           });
         }
