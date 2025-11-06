@@ -7,6 +7,8 @@ type RefLinkProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   "data-ref"?: string;
   "data-ref-type"?: string;
   "data-ref-title"?: string;
+  "data-ref-doc"?: string;
+  "data-ref-target"?: string;
 };
 
 type WindowData = {
@@ -19,12 +21,16 @@ type WindowData = {
 
 let windowIdCounter = 0;
 
+const PREVIEW_CACHE_VERSION = 2;
 const PREVIEW_CACHE = new Map<string, string>();
 const LOADING_TEMPLATE = '<div class="ref-preview-loading">読み込み中…</div>';
 const COLUMN_COLLAPSED_MAX_VH = 50;
 const POPUP_WIDTH = 650;
 const FLOATING_MARGIN = 12;
 let previewSourceIdCounter = 0;
+let previewSvgIdCounter = 0;
+const EXTERNAL_DOC_CACHE = new Map<string, Document>();
+const EXTERNAL_HTML_CACHE = new Map<string, string>();
 
 function resolvePreviewSource(element: HTMLElement | null): HTMLElement | null {
   if (!element) return null;
@@ -73,14 +79,167 @@ function scrubClone(node: HTMLElement): HTMLElement {
 
   clone.querySelectorAll(".ref-preview-window").forEach((el) => el.remove());
 
+  if (!(clone instanceof SVGElement)) {
+    clone.removeAttribute("id");
+  }
+
+  clone.querySelectorAll("[id]").forEach((el) => {
+    if (el instanceof SVGElement) {
+      return;
+    }
+    if (el.closest("svg")) {
+      return;
+    }
+    el.removeAttribute("id");
+  });
+  rewriteSvgIds(clone);
   return clone;
+}
+
+const XLINK_NS = "http://www.w3.org/1999/xlink";
+
+function rewriteSvgIds(root: HTMLElement | SVGElement): void {
+  const svgElements: SVGElement[] = [];
+
+  if (root instanceof SVGElement) {
+    svgElements.push(root);
+  }
+  root.querySelectorAll?.("svg").forEach((el) => {
+    if (el instanceof SVGElement) {
+      svgElements.push(el);
+    }
+  });
+
+  if (svgElements.length === 0) return;
+
+  for (const svg of svgElements) {
+    const prefix = `preview-${previewSvgIdCounter++}-`;
+    const idMap = new Map<string, string>();
+    const idElements: Element[] = [svg, ...Array.from(svg.querySelectorAll("[id]"))];
+
+    for (const el of idElements) {
+      if (!(el instanceof SVGElement)) continue;
+      const oldId = el.getAttribute("id");
+      if (!oldId || idMap.has(oldId)) continue;
+      const newId = `${prefix}${oldId}`;
+      el.setAttribute("id", newId);
+      idMap.set(oldId, newId);
+    }
+
+    if (idMap.size === 0) continue;
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[RefLink] rewriteSvgIds", Array.from(idMap.entries()));
+    }
+
+    const attributesToCheck = [
+      "href",
+      "xlink:href",
+      "clip-path",
+      "mask",
+      "filter",
+      "marker-start",
+      "marker-mid",
+      "marker-end",
+      "fill",
+      "stroke",
+      "aria-labelledby",
+      "aria-describedby",
+    ];
+
+    const elementsToProcess = [svg, ...Array.from(svg.querySelectorAll("*"))];
+
+    for (const el of elementsToProcess) {
+      if (!(el instanceof SVGElement)) continue;
+      const dataTypstStyle = el.getAttribute("data-typst-style");
+      if (dataTypstStyle) {
+        const replacedStyle = replaceIdReferences(dataTypstStyle, idMap);
+        if (replacedStyle !== dataTypstStyle) {
+          el.setAttribute("data-typst-style", replacedStyle);
+        }
+      }
+
+      for (const attr of attributesToCheck) {
+        const value = el.getAttribute(attr);
+        if (!value) continue;
+        let replaced: string;
+        if (attr === "aria-labelledby" || attr === "aria-describedby") {
+          replaced = replaceWhitespaceSeparatedIds(value, idMap);
+        } else {
+          replaced = replaceIdReferences(value, idMap);
+        }
+        if (replaced === value) continue;
+        if (attr === "xlink:href") {
+          el.setAttributeNS(XLINK_NS, "xlink:href", replaced);
+          el.setAttribute(attr, replaced);
+          el.setAttribute("href", replaced);
+        } else {
+          el.setAttribute(attr, replaced);
+        }
+      }
+
+      const style = el.getAttribute("style");
+      if (style) {
+        const replaced = replaceIdReferences(style, idMap);
+        if (replaced !== style) {
+          el.setAttribute("style", replaced);
+        }
+      }
+
+      if (el.tagName.toLowerCase() === "style" && el.textContent) {
+        const replaced = replaceIdReferences(el.textContent, idMap);
+        if (replaced !== el.textContent) {
+          el.textContent = replaced;
+        }
+      }
+    }
+  }
+}
+
+function replaceIdReferences(value: string, idMap: Map<string, string>): string {
+  let result = value;
+  idMap.forEach((newId, oldId) => {
+    const escaped = escapeRegExp(oldId);
+    const urlPattern = new RegExp(`url\\((['"]?)#${escaped}(['"]?)\\)`, "g");
+    result = result.replace(
+      urlPattern,
+      (_match: string, openQuote?: string, closeQuote?: string) => {
+        const quote = openQuote && openQuote === closeQuote ? openQuote : "";
+        return `url(${quote}#${newId}${quote})`;
+      },
+    );
+
+    const generalPattern = new RegExp(`(^|[^0-9A-Za-z_-])#${escaped}(?![0-9A-Za-z_-])`, "g");
+    result = result.replace(
+      generalPattern,
+      (_match: string, prefix: string) => `${prefix}#${newId}`,
+    );
+  });
+  return result;
+}
+
+function escapeRegExp(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function replaceWhitespaceSeparatedIds(value: string, idMap: Map<string, string>): string {
+  const tokens = value.split(/\s+/).filter((token) => token.length > 0);
+  let changed = false;
+  const mapped = tokens.map((token) => {
+    const replacement = idMap.get(token);
+    if (replacement) {
+      changed = true;
+      return replacement;
+    }
+    return token;
+  });
+  return changed ? mapped.join(" ") : value;
 }
 
 function getCacheKey(sourceElement: HTMLElement, targetId: string): string {
   if (!sourceElement.dataset.previewCacheKey) {
     sourceElement.dataset.previewCacheKey = `preview-source-${previewSourceIdCounter++}`;
   }
-  return `${sourceElement.dataset.previewCacheKey}::${targetId}`;
+  return `${PREVIEW_CACHE_VERSION}::${sourceElement.dataset.previewCacheKey}::${targetId}`;
 }
 
 function buildPreviewHtml(sourceElement: HTMLElement, targetId: string): string {
@@ -111,14 +270,13 @@ function buildPreviewHtml(sourceElement: HTMLElement, targetId: string): string 
     }
   }
 
-  clone.removeAttribute("id");
-  clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
-
   // 参照リンクのデータ属性を削除し、React管理の属性を避ける
   clone.querySelectorAll<HTMLAnchorElement>("a.ref-link").forEach((anchor) => {
     anchor.removeAttribute("data-ref");
     anchor.removeAttribute("data-ref-type");
     anchor.removeAttribute("data-ref-title");
+    anchor.removeAttribute("data-ref-doc");
+    anchor.removeAttribute("data-ref-target");
   });
 
   container.appendChild(clone);
@@ -126,6 +284,45 @@ function buildPreviewHtml(sourceElement: HTMLElement, targetId: string): string 
   const html = container.innerHTML;
   PREVIEW_CACHE.set(cacheKey, html);
   return html;
+}
+
+async function loadExternalElement(docPath: string, targetId: string): Promise<HTMLElement | null> {
+  const cacheKey = `${docPath}#${targetId}`;
+  const cachedHtml = EXTERNAL_HTML_CACHE.get(cacheKey);
+  if (cachedHtml) {
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(`<div>${cachedHtml}</div>`, "text/html");
+    return parsed.body.firstElementChild as HTMLElement | null;
+  }
+
+  let parsedDocument = EXTERNAL_DOC_CACHE.get(docPath);
+  if (!parsedDocument) {
+    try {
+      const response = await fetch(docPath, { credentials: "same-origin" });
+      if (!response.ok) return null;
+      const text = await response.text();
+      const parser = new DOMParser();
+      parsedDocument = parser.parseFromString(text, "text/html");
+      EXTERNAL_DOC_CACHE.set(docPath, parsedDocument);
+    } catch {
+      return null;
+    }
+  }
+
+  const targetElement = parsedDocument.getElementById(targetId);
+  if (!targetElement) return null;
+
+  const source = resolvePreviewSource(targetElement as HTMLElement);
+  if (!source) return null;
+
+  const container = parsedDocument.createElement("div");
+  container.appendChild(source.cloneNode(true));
+  const html = container.innerHTML;
+  EXTERNAL_HTML_CACHE.set(cacheKey, html);
+
+  const parser = new DOMParser();
+  const parsed = parser.parseFromString(`<div>${html}</div>`, "text/html");
+  return parsed.body.firstElementChild as HTMLElement | null;
 }
 
 function renderPreviewContent(
@@ -629,7 +826,11 @@ const ChildRefWindow: React.FC<{
 };
 
 export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
-  const dataRef = props["data-ref"] as string | undefined;
+  const externalDoc = props["data-ref-doc"] as string | undefined;
+  const externalTarget = props["data-ref-target"] as string | undefined;
+  const rawDataRef = props["data-ref"] as string | undefined;
+  const dataRef =
+    rawDataRef ?? (externalDoc && externalTarget ? `${externalDoc}#${externalTarget}` : undefined);
   const { previewMode } = usePreviewMode();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -686,7 +887,9 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
     };
   }, [useFloating, isExpanded, updateFloatingPosition]);
 
-  const targetId = props.href?.replace("#", "");
+  const href = props.href ?? "";
+  const hashIndex = href.indexOf("#");
+  const targetId = hashIndex >= 0 ? href.slice(hashIndex + 1) : undefined;
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -747,6 +950,32 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
     }
   };
 
+  useEffect(() => {
+    if (!isExpanded) {
+      setPreviewElement(null);
+      return;
+    }
+    if (!externalDoc) return;
+    const target = externalTarget || targetId;
+    if (!target) return;
+    let cancelled = false;
+    setPreviewElement(null);
+    loadExternalElement(externalDoc, target)
+      .then((element) => {
+        if (!cancelled) {
+          setPreviewElement(element);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviewElement(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isExpanded, externalDoc, externalTarget, targetId]);
+
   // 展開時にスムーズにスクロール（インライン表示の場合のみ）
   useEffect(() => {
     if (isExpanded && windowRef.current && !useFloating) {
@@ -756,13 +985,17 @@ export const RefLink: React.FC<RefLinkProps> = ({ children, ...props }) => {
 
   // 参照先要素をクローンしてコンテンツエリアに挿入
   useEffect(() => {
-    if (!isExpanded || !previewElement || !targetId) return;
+    if (!isExpanded || !targetId) return;
 
     const container = contentRef.current;
     const wrapper = wrapperRef.current;
     if (!container) return;
 
-    container.innerHTML = LOADING_TEMPLATE;
+    if (!previewElement) {
+      container.innerHTML = LOADING_TEMPLATE;
+      return;
+    }
+
     const containerWithHandler = container as HTMLDivElement & {
       __refPreviewHandler?: EventListener;
     };
