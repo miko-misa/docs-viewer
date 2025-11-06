@@ -11,13 +11,85 @@ import { LabelIndex } from "./refs";
 
 interface PluginOptions {
   labelIndex: LabelIndex;
+  resolveExternal?: (
+    fileSegments: string[],
+    rawLabel: string,
+    normalizedLabel: string,
+  ) =>
+    | {
+        docPath: string;
+        elementId: string;
+        title: string;
+        type: string;
+      }
+    | undefined;
 }
 
 /**
  * remarkResolveReferences - 参照解決プラグイン
  */
 export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) => {
-  const { labelIndex } = options;
+  const { labelIndex, resolveExternal } = options;
+
+  const resolveToken = (
+    token: string,
+  ):
+    | {
+        href: string;
+        title: string;
+        hProperties: Record<string, string>;
+      }
+    | undefined => {
+    const normalizedToken = token.trim();
+    if (!normalizedToken) return undefined;
+    const slashIndex = normalizedToken.lastIndexOf("/");
+    let labelPart = normalizedToken;
+    let fileSegments: string[] | undefined;
+    if (slashIndex > 0) {
+      const filePart = normalizedToken.slice(0, slashIndex);
+      labelPart = normalizedToken.slice(slashIndex + 1);
+      const segments = filePart
+        .split("/")
+        .map((segment) => segment.trim())
+        .filter((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+      if (segments.length > 0) {
+        fileSegments = segments;
+      }
+    }
+
+    if (!labelPart) return undefined;
+    const normalizedLabel = LabelIndex.normalizeId(labelPart);
+
+    if (!fileSegments) {
+      const labelInfo = labelIndex.get(normalizedLabel);
+      if (!labelInfo) return undefined;
+      return {
+        href: `#${labelInfo.elementId}`,
+        title: labelInfo.title,
+        hProperties: {
+          "data-ref": normalizedLabel,
+          "data-ref-type": labelInfo.type,
+          "data-ref-title": labelInfo.title,
+        },
+      };
+    }
+
+    if (!resolveExternal) return undefined;
+    const external = resolveExternal(fileSegments, labelPart, normalizedLabel);
+    if (!external) return undefined;
+    const href = `${external.docPath}#${external.elementId}`;
+    return {
+      href,
+      title: external.title,
+      hProperties: {
+        "data-ref": href,
+        "data-ref-type": external.type,
+        "data-ref-title": external.title,
+        "data-ref-doc": external.docPath,
+        "data-ref-target": external.elementId,
+      },
+    };
+  };
 
   return (tree: Root) => {
     // [文章](@label-id) 形式の link ノードを処理
@@ -26,23 +98,16 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
 
       // @label-id 形式のURLをチェック
       if (url.startsWith("@")) {
-        const labelId = url.substring(1);
-        const normalizedId = LabelIndex.normalizeId(labelId);
-        const labelInfo = labelIndex.get(normalizedId);
+        const token = url.substring(1);
+        const resolved = resolveToken(token);
 
-        if (labelInfo) {
-          // ラベルが見つかった場合、URLとdata属性を更新
-          node.url = `#${labelInfo.elementId}`;
+        if (resolved) {
+          node.url = resolved.href;
           node.data = {
-            hProperties: {
-              "data-ref": normalizedId,
-              "data-ref-type": labelInfo.type,
-              "data-ref-title": labelInfo.title,
-            },
+            hProperties: resolved.hProperties,
           };
         } else {
-          // ラベルが見つからない場合、警告は出さずそのまま（説明文の可能性があるため）
-          // 明示的な参照の場合はユーザーがリンク形式で書いているので気づける
+          // ラベルが見つからない場合はそのまま残す
         }
       }
     });
@@ -67,7 +132,7 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
         }> = [];
 
         // @label-id パターンを検出（単語境界を考慮）
-        const regex = /@([a-z][a-z0-9-:]*)/g;
+        const regex = /@([a-z][a-z0-9-:\/]*)/g;
         let match;
 
         while ((match = regex.exec(text)) !== null) {
@@ -89,8 +154,7 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
         let lastEnd = 0;
 
         for (const ref of references) {
-          const normalizedId = LabelIndex.normalizeId(ref.labelId);
-          const labelInfo = labelIndex.get(normalizedId);
+          const resolved = resolveToken(ref.labelId);
 
           // 参照前のテキスト
           if (ref.start > lastEnd) {
@@ -100,18 +164,13 @@ export const remarkResolveReferences: Plugin<[PluginOptions], Root> = (options) 
             });
           }
 
-          if (labelInfo) {
-            // ラベルが見つかった場合、リンクに変換（タイトルをリンクテキストに使用）
+          if (resolved) {
             newChildren.push({
               type: "link",
-              url: `#${labelInfo.elementId}`,
-              children: [{ type: "text", value: labelInfo.title }],
+              url: resolved.href,
+              children: [{ type: "text", value: resolved.title }],
               data: {
-                hProperties: {
-                  "data-ref": normalizedId,
-                  "data-ref-type": labelInfo.type,
-                  "data-ref-title": labelInfo.title,
-                },
+                hProperties: resolved.hProperties,
               },
             } as Link);
           } else {

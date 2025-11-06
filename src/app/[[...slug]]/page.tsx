@@ -156,7 +156,10 @@ export default async function DocPage(props: PageProps) {
   const docDirRelative = path.relative(DOCS_ROOT, path.dirname(doc.filePath));
   const groupSlug = doc.groupConfig ? docDirRelative.split(path.sep).filter(Boolean) : undefined;
 
-  const rendered = await renderMarkdown(doc.content);
+  const rendered = await renderMarkdown(doc.content, {
+    currentSlug: doc.slug,
+    groupSlug,
+  });
   const toc = extractToc(doc.content);
   const navigation = await buildNavigation(doc);
 

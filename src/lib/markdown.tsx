@@ -39,6 +39,7 @@ import { remarkResolveReferences } from "./remark-references";
 import { remarkAnnotations } from "./remark-annotations";
 import { rehypeTypstWithProlog } from "./rehype-typst-curryst";
 import { CURRYST_TYPST_PROLOG } from "./typst-curryst-prolog";
+import { getDocBySlug } from "./docs";
 
 type DirectiveNode = Parent & {
   name?: string;
@@ -49,6 +50,18 @@ type DirectiveNode = Parent & {
     [key: string]: unknown;
   };
   type: "textDirective" | "leafDirective" | "containerDirective";
+};
+
+type ExternalReferenceInfo = {
+  docPath: string;
+  elementId: string;
+  title: string;
+  type: string;
+};
+
+type RenderMarkdownOptions = {
+  currentSlug?: string[];
+  groupSlug?: string[];
 };
 
 function getDirectiveContentText(node: Parent): string {
@@ -162,6 +175,99 @@ const remarkNormalizeDiffCode: Plugin<[], Parent> = () => (tree: Parent) => {
     }
   });
 };
+
+async function collectLabels(markdown: string): Promise<LabelIndex> {
+  const collected = new LabelIndex();
+  const processor = unified()
+    .use(remarkParse)
+    .use(remarkMath)
+    .use(remarkGfm)
+    .use(remarkBreaks)
+    .use(remarkDirective)
+    .use(remarkTransformDirectives)
+    .use(remarkCollectLabels, { labelIndex: collected })
+    .use(remarkAnnotations, { labelIndex: collected });
+
+  const tree = processor.parse(markdown);
+  await processor.run(tree);
+  return collected;
+}
+
+async function collectExternalReferences(
+  markdown: string,
+  options?: RenderMarkdownOptions,
+): Promise<Map<string, ExternalReferenceInfo>> {
+  const result = new Map<string, ExternalReferenceInfo>();
+  if (!options) return result;
+
+  let baseSlug: string[] = [];
+  if (options.groupSlug) {
+    baseSlug = options.groupSlug;
+  } else if (options.currentSlug) {
+    baseSlug = options.currentSlug.slice(0, -1);
+  }
+  if (process.env.DEBUG_CROSS_REF) {
+    console.log(
+      "[collectExternalReferences] baseSlug:",
+      baseSlug,
+      "currentSlug:",
+      options.currentSlug,
+    );
+  }
+
+  const regex = /@([a-z][a-z0-9-:\/]*)/gi;
+  const seen = new Set<string>();
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(markdown)) !== null) {
+    const token = match[1];
+    const slashIndex = token.lastIndexOf("/");
+    if (slashIndex <= 0) continue;
+
+    const filePart = token.slice(0, slashIndex);
+    const labelPart = token.slice(slashIndex + 1);
+    if (!labelPart) continue;
+
+    const fileSegments = filePart
+      .split("/")
+      .map((segment) => segment.trim())
+      .filter((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+    if (fileSegments.length === 0) continue;
+
+    const normalizedLabel = LabelIndex.normalizeId(labelPart);
+    const key = `${fileSegments.join("/")}/${normalizedLabel}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const targetSlug = [...baseSlug, ...fileSegments];
+    try {
+      const targetDoc = await getDocBySlug(targetSlug);
+      const targetLabels = await collectLabels(targetDoc.content);
+      const labelInfo = targetLabels.get(normalizedLabel);
+      if (!labelInfo) continue;
+      const docPath = `/${targetSlug.join("/")}`;
+      result.set(key, {
+        docPath,
+        elementId: labelInfo.elementId,
+        title: labelInfo.title,
+        type: labelInfo.type,
+      });
+    } catch (error) {
+      if (process.env.DEBUG_CROSS_REF) {
+        console.warn(
+          "[collectExternalReferences] failed to resolve",
+          targetSlug.join("/"),
+          "label",
+          normalizedLabel,
+          error,
+        );
+      }
+      continue;
+    }
+  }
+
+  return result;
+}
 
 const remarkTransformDirectives: Plugin<[], Parent> = () => (tree: Parent) => {
   visit(tree, (node, index, parent) => {
@@ -384,7 +490,17 @@ const sanitizeSchema: Schema = {
   ],
   attributes: {
     "*": ["className", "id"],
-    a: ["href", "ref", "target", "rel", "data-ref", "data-ref-type", "data-ref-title"],
+    a: [
+      "href",
+      "ref",
+      "target",
+      "rel",
+      "data-ref",
+      "data-ref-type",
+      "data-ref-title",
+      "data-ref-doc",
+      "data-ref-target",
+    ],
     div: [
       "data-name",
       "data-value",
@@ -610,11 +726,25 @@ const rehypeEnhanceCodeBlocks: Plugin<[], Parent> = () => (tree: Parent) => {
     });
   });
 };
-export async function renderMarkdown(markdown: string): Promise<ReactNode> {
+export async function renderMarkdown(
+  markdown: string,
+  options?: RenderMarkdownOptions,
+): Promise<ReactNode> {
   const isDev = process.env.NODE_ENV !== "production";
 
   // ラベルインデックスを作成
   const labelIndex = new LabelIndex();
+  const externalMap = await collectExternalReferences(markdown, options);
+  if (process.env.DEBUG_CROSS_REF) {
+    console.log("[renderMarkdown] external references:", Array.from(externalMap.keys()));
+  }
+  const resolveExternal =
+    externalMap.size > 0
+      ? (fileSegments: string[], _rawLabel: string, normalizedLabel: string) => {
+          const key = `${fileSegments.join("/")}/${normalizedLabel}`;
+          return externalMap.get(key);
+        }
+      : undefined;
 
   const file = await unified()
     .use(remarkParse)
@@ -625,7 +755,7 @@ export async function renderMarkdown(markdown: string): Promise<ReactNode> {
     .use(remarkNormalizeDiffCode)
     .use(remarkTransformDirectives)
     .use(remarkCollectLabels, { labelIndex })
-    .use(remarkResolveReferences, { labelIndex })
+    .use(remarkResolveReferences, { labelIndex, resolveExternal })
     .use(remarkAnnotations, { labelIndex })
     .use(remarkRehype, { allowDangerousHtml: false })
     .use(rehypeTypstWithProlog, {
