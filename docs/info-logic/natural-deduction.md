@@ -368,3 +368,53 @@ $$
 以上で、すべての推論規則について示したので、自然演繹は健全であることが示された。$square.filled$
 
 :::
+
+## 自然演繹の完全性
+完全性とは以下が成り立つことであった。
+$$
+Gamma models phi => Gamma tack.r.short phi
+$$
+
+この証明は極大無矛盾集合を用いて行う。この自然演繹の推測規則から以下の2つの補題を示す。
+
+
+さて、これらの補題の次に完全性の照明に用いる補題を2つ示す。
+
+:::column-toc
+(lem-max-cons-closure)=
+@title:【補題】極大無矛盾集合の演繹閉包性
+
+**【主張】**
+極大無矛盾集合を$Gamma$とする。このとき、以下が成り立つ。
+$$
+Gamma tack.r.short phi => phi in Gamma
+$$
+
+**【証明】**
+背理法により示す。まず、$Gamma tack.r.short phi$である。$phi in.not Gamma$と仮定する。このとき、極大性より$Gamma union {phi}$は無矛盾でない。つまり、$Gamma union {phi} tack.r.short bot$である。このとき、含意の導入規則より、$Gamma tack.r.short (phi -> bot) approx not phi$である。さらに、$Gamma tack.r.short phi$であったので、含意の消去規則より、$Gamma tack.r.short bot$である。
+:::prooftree
+rule(
+name:[$-> "E"$],
+$bot$,
+align(center)[#stack(dir: ttb, spacing: 4pt)[$Gamma$][$dots.v$][$phi$]],
+align(center)[#stack(dir: ttb, spacing: 4pt)[$Gamma$][$dots.v$][$phi -> bot$]],
+)
+:::
+
+しかし、これは$Gamma$の無矛盾性に反する。したがって、$phi in Gamma$である。$square.filled$
+
+:::
+
+:::column-toc
+@title:【補題】極大無矛盾集合の性質1
+
+**【主張】**
+極大無矛盾集合を$Gamma$とする。このとき、すべての命題論理式$phi in italic("PROP")$について$phi in Gamma$または$not phi in Gamma$のいずれかが成り立つ。
+
+**【証明】**
+$Gamma$は無矛盾であるので、$phi in Gamma$かつ$not phi in Gamma$となることはない。
+
+- $Gamma union {phi}$が無矛盾であるとする。このとき、極大性より$phi in Gamma$である。
+- $Gamma union {phi}$が無矛盾でないとする。つまり$Gamma union {phi} tack.r.short bot$である。このとき、含意の導入規則より、$Gamma tack.r.short (phi -> bot) approx not phi$である。したがって、@lem-max-cons-closure より$not phi in Gamma$である。
+
+:::

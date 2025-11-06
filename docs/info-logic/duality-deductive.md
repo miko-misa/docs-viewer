@@ -206,7 +206,7 @@ $$
 {phi_1, phi_2, dots, phi_n} &tack.r.short psi\
 phi_1, phi_2, dots, phi_n &tack.r.short psi
 $$
-と表記し、この性質を**導出可能性(derivability)** と呼ぶ。もし、仮定なしに$psi$が導出されるならば、単に$&tack.r.short psi$と表記する。
+と表記し、この性質を**導出可能性(derivability)** と呼ぶ。もし、仮定なしに$psi$が導出されるならば、単に$&tack.r.short psi$と表記する。なお、左辺の命題の集合は$Gammma$や$Delta$などのギリシャ文字で表されることも多い。
 
 ## 健全性と完全性
 $Gamma$を命題の集合とする。
@@ -225,3 +225,93 @@ $$
 であることを指す。これは、意味論的に正しい命題論理式はすべて演繹体系によって導出できることを保証する。
 
 演繹体系では、健全性と完全性の両方を満たすことが重要である。これにより、安心して演繹体系を用いて命題論理式を操作し、証明を行うことができる。
+
+## 極大無矛盾集合
+**無矛盾(consistent)** とはある命題集合$Gamma$について、$Gamma$から矛盾が導出されないことを指す。すなわち、
+$$
+Gamma &tack.r.not bot
+$$
+が成り立つことを意味する。このとき、$Gamma$は **無矛盾集合(consistent set)** と呼ばれる。ここで、$Gamma$が**極大無矛盾集合(maximal consistent set)** であるとは、命題集合$Gamma$が以下の2つの条件を満たすことを指す。
+
+1. **無矛盾性**: $Gamma$は無矛盾である。すなわち、$Gamma &tack.r.not bot$である。
+2. **極大性**: $Gamma$に新たな命題$phi$を追加した集合$Gamma union {phi}$が無矛盾であるならば、$phi in Gamma$である。すなわち、これ以上に大きい無矛盾集合は存在しない。
+
+:::column-toc
+(lem-prop-countable)=
+@title:【補題】命題論理全体の集合は加算濃度
+
+**【主張】**
+$$
+| italic("PROP") | = aleph_0
+$$
+
+**【証明】**
+まず、原始命題の集合$italic("ATOM")$が可算無限集合であることから、$italic("ATOM")$の元を$p_1, p_2, p_3, dots$と列挙できる。そこに、有限集合の結合子を加えても可算無限集合であることに注意する。この集合を$Sigma$とする。なお、これはアルファベットと呼ばれるものである。このアルファベットを$n$個並べた文字列全体の集合は$Sigma^n$と表される。なお、その定義は以下のとおりである。
+$$
+Sigma^n &= Sigma times Sigma times dots times Sigma\
+&= { (a_1, a_2, dots, a_n) | a_i in Sigma med (1 <= i <= n) }
+$$
+ここで、$Sigma^n = Sigma^(n-1) times Sigma$であることに注意する。
+ここで$|Sigma^n| = aleph_0$を示す。
+$n = 1$のとき、$|Sigma^1| = |Sigma| = aleph_0$である。
+次に、$|Sigma^(n-1)| = aleph_0$であると仮定する。このとき、$|Sigma| = aleph_0$でることから、
+$$
+f &: Sigma &-> NN\
+g &: Sigma^(n-1) &-> NN\
+$$
+となる全単射$f, g$が存在する。ここで、以下の写像$h$を定義する。
+$$
+h &: Sigma^n -> NN\
+h ((a_1, a_2, dots, a_n)) &= 1/2(i+j)(i+j+1) + j
+$$
+なお、$i = f(a_1)$、$j = g((a_2, a_3, dots, a_n))$である。$h$はカントールのペアリング関数を用いたものであり、全単射であることが知られている。したがって、$|Sigma^n| = aleph_0$であることが示された。ゆえに、任意の$n in NN$について$|Sigma^n| = aleph_0$である。
+
+次に、全単射
+$$
+k_1: NN times NN &-> union.big_n=0^infinity Sigma^n\
+$$
+は明らかに存在し、上の結果から全単射
+$$
+k_2: NN &-> NN times NN\
+$$
+もそんざいする。したがって、合成写像
+$$
+k_1 circle k_2: NN &-> union.big_(n=0)^infinity Sigma^n =: Sigma^ast\
+$$
+も全単射である。ゆえに、$| Sigma^ast | = aleph_0$である。最後に、命題論理式はある長さの文字列のなかで、ルールに基づいて構成されたものであるので$italic("PROP") subset.eq Sigma^ast$である。ここで、$italic("PROP")$は明らかに無限集合であることに注意すると、$| italic("PROP") | = aleph_0$であることが示された。
+:::annotation
+ここで、加算集合より真に小さい無限集合は存在しないことを用いている。これは、ZFCの公理系で証明可能だがここでは省略する。
+:::
+$square.filled$
+
+:::
+
+
+:::column-toc
+@title:【補題】極大無矛盾集合の構成
+
+**【主張】**
+任意の無矛盾集合$Gamma$について、ある極大無矛盾集合$Gamma^ast$が存在して、$Gamma subset.eq Gamma^ast$である。
+
+**【証明】**
+@lem-prop-countable より、命題論理全体の集合$italic("PROP")$は可算無限集合である。したがって、$italic("PROP")$の元を$phi_1, phi_2, phi_3, dots$と列挙できる。ここで、以下のように命題集合$Gamma_n$を帰納的に定義する。
+$$
+Gamma_0 &= Gamma\
+Gamma_(n+1) &= cases(
+   Gamma_n union { phi_(n+1) } &" if " Gamma_n union { phi_(n+1) } &tack.r.not bot ,
+   Gamma_n &" otherwise "
+)
+$$
+このとき、
+$$
+Gamma^ast = union.big_(n=0)^infinity Gamma_n
+$$
+である。これは極大無矛盾集合である。
+
+まず、無矛盾性を示す。任意の有限な部分集合$Delta subset.eq Gamma^ast$を取る。このとき、ある$N in NN$が存在して、$Delta subset.eq Gamma_N$である。なぜなら、$Delta$は有限集合であり、各元はある$Gamma_n$に含まれているからである。したがって、$Gamma_N &tack.r.not bot$であることから、$Delta &tack.r.not bot$である。ゆえに、$Gamma^ast &tack.r.not bot$である。
+
+次に、極大性を示す。ある命題$phi in italic("PROP")$について、$Gamma^ast union { phi } &tack.r.not bot$であるとする。このとき、ある$M in NN$が存在して、$phi = phi_(M)$である。したがって、$Gamma_M union { phi_(M) } &tack.r.not bot$であることから、定義より$phi_(M) in Gamma_(M+1) subset.eq Gamma^ast$である。ゆえに、極大性が成り立つ。
+
+以上により、任意の無矛盾集合$Gamma$について、ある極大無矛盾集合$Gamma^ast$が存在することが示された。
+
+:::
