@@ -51,7 +51,7 @@ title: 自然演繹法とその健全性・完全性
    $$
    Gamma union {phi} tack.r.short psi => Gamma tack.r.short (phi -> psi)
    $$
-   $psi$を導出できている場合、$phi -> psi$を導出できる。なおこの時、仮定に$phi$が含まれている場合、**解消(discharge)** と呼ばれる操作を行い、仮定の出現から1個以上の$phi$を取り除くことができる。解消については後述する。
+   $psi$を導出できている場合、$phi -> psi$を導出できる。なおこの時、仮定に$phi$が含まれている場合、**解消(discharge)** と呼ばれる操作を行い、仮定の出現から1個以上の$phi$を取り除くことができる。解消については @sec-discharge で詳しく説明する。以下の証明図では、仮定から解消された$phi$がラベル$ell$で示されている。
    :::prooftree
    rule(
    name:[$-> "I"_ell$],
@@ -84,7 +84,7 @@ title: 自然演繹法とその健全性・完全性
    align(center)[#stack(dir: ttb, spacing: 4pt)[$Gamma$][$dots.v$][$bot$]],
    )
    :::
-   この規則は一見すると奇妙であるが、意味論に裏付けされている。後述する。
+   この規則は一見すると奇妙であるが、意味論に裏付けされている。 詳しくは @sec-explosion-rule を参照されたい。
 6. **背理法** （古典論理）
    $$
    Gamma union {not phi} tack.r.short bot => Gamma tack.r.short phi
@@ -97,11 +97,12 @@ title: 自然演繹法とその健全性・完全性
    align(center)[#stack(dir: ttb, spacing: 4pt)[$[phi -> bot]^ell quad Gamma$][$dots.v$][$bot$]],
    )
    :::
+   詳しくは @sec-reductio-ad-absurdum を参照されたい。
 7. **仮定の追加=弱化**
    $$
    Gamma tack.r.short phi => Gamma union {psi} tack.r.short phi
    $$
-   すでに導出されている$phi$に対して、仮定に新たな命題$psi$を追加しても、$phi$は導出できる。これは含意の導入規則と併せて用いられることが多く、証明図の上部に出現しないことが多い。
+   すでに導出されている$phi$に対して、仮定に新たな命題$psi$を追加しても、$phi$は導出できる。これは含意の導入規則と併せて用いられることが多く、証明図の上部に出現しないことが多い。なぜこのような規則が必要かは @sec-weakening を参照されたい。
 
 ## 証明図
 各規則で書かれている図は **証明図(proof tree)** と呼ばれ自然演繹ではこの証明図を書いて導出を行う。証明図はいわゆる親と子をもつ木構造となっているが、親は0つから2つまで許可され、子は1つしか許可されないという意味でいつもみるものとは逆（下から上）の木構造
@@ -127,12 +128,12 @@ rule(
 
 $sigma_1, sigma_2, dots, sigma_m$は解消されている命題であり、この証明図は$phi_1, phi_2, dots, phi_n tack.r.short psi$を表していることになる。
 
-## 解消
-**解消(discharge)** とは、証明図において仮定から1個以上の命題を取り除く操作を指す。たとえば、含意の導入規則や背理法では、証明図の一部で仮定として用いた命題が最終的に解消される。解消された命題は証明図の最上部には現れても仮定ではなくなる。自然演繹のルールから、導出の木は下から上に見ていくと、1つまたは2つの枝分かれがあるため、解消を行わないと仮定は狭義単調増加する。しかし、解消を行うことで減らすことができ、それが唯一の仮定の減少を許す操作となる。解消は証明図の中でラベル付けされ、解消を行なった操作（含意の導入または背理法）でそのラベルを用いる。@sec-natural-deduction-rule で示した証明図では$ell$がそのラベルで基本的に数字を用いる。
+## (sec-discharge)= 解消
+**解消(discharge)** とは、証明図において仮定から1個以上の命題を取り除く操作を指す。たとえば、含意の導入規則や背理法では、証明図の一部で仮定として用いた命題が最終的に解消される。解消された命題は証明図の最上部には現れても仮定ではなくなる。自然演繹のルールから、導出の木は下から上に見ていくと、1つまたは2つの枝分かれがあるため、解消を行わないと仮定は広義単調増加する。しかし、解消を行うことで減らすことができ、それが唯一の仮定の減少を許す操作となる。解消は証明図の中でラベル付けされ、解消を行なった操作（含意の導入または背理法）でそのラベルを用いる。@sec-natural-deduction-rule で示した証明図では$ell$がそのラベルで基本的に数字を用いる。
 
 なお、解消は前提とした命題の出現すべてに対して行う必要はない。たとえば、$phi$を2回仮定として用いている場合、1回だけ解消しても良い。また、弱化を用いると1つも解消しないことも可能である。
 
-## 背理法
+## (sec-reductio-ad-absurdum)= 背理法
 背理法は古典論理に特有の規則であり、ある命題$phi$の否定$not phi$を仮定して矛盾が導出できる場合、$phi$を導出できるという規則である。直観主義論理ではこの規則は許可されない。背理法は一見すると含意の導入規則に含まれているように見える。
 :::prooftree
 rule(
@@ -143,23 +144,25 @@ rule(
 :::
 しかし、ここで導出されている$(phi -> bot) -> bot$は$phi$であるとは限らない。なぜなら、直観主義論理においては$phi$と$(phi -> bot) -> bot$は意味論的に等価ではないからである。そもそも、推論規則において意味論的等価性を前提とすることはできない。推論規則上は$(phi -> bot) -> bot$と$phi$は別の命題であり、同じものとして扱うことはできない。したがって、背理法は含意の導入規則とは別に定義される必要がある。
 
-## 爆発則
+## (sec-explosion-rule)= 爆発則
 爆発則は一見すると奇妙な規則であるが、意味論に裏付けされている。すなわち、仮定から$bot$が導出できている場合、どんな命題$phi$も導出できるという規則であるが、これは次のように説明できる。
 
 意味論において、$Gamma models bot$とは,$Gamma$内のすべての命題$phi$について$[|phi|]_v = 1$となる共通の付値$v$が存在しないことを意味する。なぜなら、$[|bot|]_v = 0$であるからである。つまり、$Gamma$内で矛盾が発生している。
 
-ここで、$phi tack.r.short psi$のとき、これは端的に$phi -> psi$が成り立っててほしい。つまり、$Gamma = {phi_1, phi_2, dots, phi_n} tack.r.short psi$について$phi_1 and phi_2 and ... and phi_n -> psi$が成り立つ。しかしながら、$Gamma$が矛盾しており$phi_1 and phi_2 and ... and phi_n$が常に偽である場合、$->$の規則から$phi$が何であれ、これは真となっててほしい。真となるものは、導出されるべきという完全性を課せば、$phi$には任意の命題を入れることができなければならず、それがルールとなっている。したがって、爆発則は意味論的に正当化される。
+ここで、$phi tack.r.short psi$のとき、これは端的に$phi -> psi$が成り立っててほしい。つまり、$Gamma = {phi_1, phi_2, dots, phi_n} tack.r.short psi$について$phi_1 and phi_2 and ... and phi_n -> psi$が成り立つ。しかしながら、$Gamma$が矛盾しており$phi_1 and phi_2 and ... and phi_n$が常に偽である場合、$->$の意味論的規則から$psi$が何であれ、これは真となっててほしい。真となるものは、導出されるべきという完全性を課せば、$psi$には任意の命題を入れることができなければならず、それがルールとなっている。したがって、爆発則は意味論的に正当化される。
 
 改めて述べるが、この規則も自然演繹が完全性と健全性を持つことに寄与しており、上の説明のように完全性から導かれたり、他の理論から導かれるルールではない。つまり、完全性と健全性のためにこの規則が必要である、ということである。
 
-## 弱化
+## (sec-weakening)= 弱化
 弱化とは、すでに導出されている命題に対して、仮定に新たな命題を追加しても、導出される命題は変わらないという規則である。仮定は必ず用いなければならないわけではないので、仮定に新たな命題を追加しても導出される命題は変わらない。
 
 しかし一方で元の仮定に矛盾する仮定を追加しても良いのかと思うかもしれない。たとえば、$p$を仮定しているときに$not p$を追加しても良いのか、ということである。しかし、今回考えているのは **導出可能性** である。導出を最後まで到達させることは必要ない。仮定の中で何が言えるのかが重要であり、矛盾するから何も言えない、ということにはならない。（むしろ矛盾するなら爆発則より有利になることもあるかもしれない。）
 
-しかし、弱化は名前の通り主張を弱くしてしまう。たとえば、$Gamma tack.r.short phi$を導出したいと考えて、$Gamma$に$phi$自身を追加してみよう。すると、$Gamma union {phi} tack.r.short phi$が成り立つ。しかし、これは$Gamma tack.r.short phi$よりも弱い主張である。なぜなら、$Gamma$に$phi$が含まれている場合、当然ながら$phi$は導出できるからである。したがって、弱化は主張を弱くすることになる。照明で求められるのは必要最低限度の仮定から結論を導出することであるため、弱化はあまり用いられない。
+しかし、弱化は名前の通り主張を弱くしてしまう。たとえば、$phi_1, phi_2 tack.r.short psi$を導出したいと考えたとき、弱化を用いて$phi_3$を仮定に追加してしまうと、$phi_1, phi_2, phi_3 tack.r.short psi$を導出することになり、主張が弱くなってしまう。証明を行う際、できれば仮定は少ない方が良い。さらに言うなら、仮定がない方がより良い。
 
-一方で、弱化は含意の導入規則と併せて用いられることが多い。弱化で仮定$Gamma$に命題$phi$を追加し、含意の導入規則でその命題$phi$を解消することで、$Gamma$に対して含意を導入できるからである。以下のような証明図があり得る。
+一方で、証明したい内容が$phi_1, phi_2, phi_3 tack.r.short psi$であったのに、$phi_1, phi_2 tack.r.short psi$が導出できたとしても、弱化を用いて$phi_1, phi_2, phi_3 tack.r.short psi$を導出できるため、問題はない。証明において使わない仮定があっても良いのである。
+
+さらに、弱化は含意の導入規則と併せて用いることにより仮定の数を維持することができる。弱化で仮定$Gamma$に命題$phi$を追加し、含意の導入規則でその命題$phi$を解消することで、$Gamma$に対して含意を導入できるからである。以下のような証明図があり得る。
 :::prooftree
 rule(
    name:[$-> "I"_1$],
@@ -427,6 +430,8 @@ $$
 Gamma tack.r.short phi => phi in Gamma
 $$
 
+なお、この逆は自明である。
+
 **【証明】**
 背理法により示す。まず、$Gamma tack.r.short phi$である。$phi in.not Gamma$と仮定する。このとき、極大性より$Gamma union {phi}$は無矛盾でない。つまり、$Gamma union {phi} tack.r.short bot$である。このとき、含意の導入規則より、$Gamma tack.r.short (phi -> bot) approx not phi$である。さらに、$Gamma tack.r.short phi$であったので、含意の消去規則より、$Gamma tack.r.short bot$である。
 
@@ -465,6 +470,7 @@ $Gamma$は無矛盾であるので、$phi in Gamma$かつ$not phi in Gamma$と�
 :::
 
 :::column-toc
+(lem-max-cons-imp-bicond)=
 @title:【補題】極大無矛盾集合における含意—所属の同値性
 
 **【主張】**
@@ -530,7 +536,7 @@ $(phi in Gamma => psi in Gamma)$であると仮定する。以下$phi in Gamma$�
 @title: 【補題】無矛盾性と付値の存在
 
 **【主張】**
-以下の二つは同値である。
+以下の2つは同値である。
 
 1. 命題集合$Gamma$が無矛盾である
 2. すべての$phi in Gamma$について$[|phi|]_v = 1$となる付値$v$が存在する。
@@ -539,4 +545,122 @@ $(phi in Gamma => psi in Gamma)$であると仮定する。以下$phi in Gamma$�
 $(2) => (1)$はすぐに示せる。これは @thm-natural-deduction-soundness の系である。
 もし$(2)$が成り立つ上で$Gamma$が無矛盾ではない、つまり$Gamma tack.r.short bot$であるとすると、@thm-natural-deduction-soundness より、$Gamma models bot$である。しかし、$[|bot|]_v = 1$となる付値$v$が存在しないため、これは仮定$(2)$に反し矛盾が生じる。
 
-$(1) => (2)$を示す。@duality-deductive/lem-max-consistent-existence
+$(1) => (2)$を示す。@duality-deductive/lem-max-consistent-existence より、$Gamma subset.eq Gamma^ast$を満たす極大無矛盾集合$Gamma^ast$が存在する。ここで、付値$v$を以下のように定義する。
+$$
+v(p) &= cases(
+   1 & quad "if" p in Gamma^ast,
+   0 & quad "if" p in.not Gamma^ast,
+) quad (p in italic("ATOM"))
+$$
+ただし、$Gamma^ast$が極大無矛盾集合であることから、$bot in.not Gamma^ast$であることに注意されたい。$phi in Gamma^ast <=> [|phi|]_v = 1$を数学的帰納法で示す。
+
+**基底部**
+$phi$が原子命題$p$であるとき、$p in Gamma^ast$であるならば$v(p) = 1$であり、$[|p|]_v = v(p) = 1$である。$p in.not Gamma^ast$であるならば$v(p) = 0$であり、$[|p|]_v = v(p) = 0$である。よって、基底部は成り立つ。
+
+**帰納部**
+以下が成り立っていると仮定する。
+$$
+[|phi_1|]_v = 1 <=> phi_1 in Gamma^ast\
+[|phi_2|]_v = 1 <=> phi_2 in Gamma^ast
+$$
+このとき、自然演繹で用いる論理結合子は$and, ->$であるので、これらについて示す。
+- **連言**
+  $phi = phi_1 and phi_2$であるとする。このとき、
+  $$
+  [|phi_1 and phi_2|]_v = 1 &<=> min( [|phi_1|]_v, [|phi_2|]_v ) = 1\
+  &<=> [|phi_1|]_v = 1 quad "and" quad [|phi_2|]_v = 1\
+  &attach(limits(<=>), t: "A") phi_1 in Gamma^ast quad "and" quad phi_2 in Gamma^ast\
+  &attach(limits(<=>), t: "B") Gamma^ast tack.r.short phi_1 quad "and" quad Gamma^ast tack.r.short phi_2\
+  &attach(limits(<=>), t: "C") Gamma^ast tack.r.short (phi_1 and phi_2)\
+  &attach(limits(<=>), t: "D") (phi_1 and phi_2) in Gamma^ast
+  $$
+  であるから、連言について成り立つ。なお、A, B, C, Dはそれぞれ以下の補題または性質を用いている。
+   - A: 帰納法の仮定
+   - B: @lem-max-cons-closure （逆は自明）
+   - C: $=>$は自然演繹の連言の導入規則、$arrow.l.double$は連言の消去規則
+   - D: @lem-max-cons-closure （逆は自明）
+
+- **含意**
+  $phi = phi_1 -> phi_2$であるとする。このとき、
+  $$
+  [|phi_1 -> phi_2|]_v = 1 &<=> 1 = cases(
+     1 & quad "if" [|phi_1|]_v = 0,
+     [|phi_2|]_v & quad "if" [|phi_1|]_v = 1,
+  )\
+  &<=> (( [|phi_1|]_v = 1 ) quad => quad ( [|phi_2|]_v = 1 ))\
+  &attach(limits(<=>), t: "A") (( phi_1 in Gamma^ast ) quad => quad ( phi_2 in Gamma^ast ))\
+  &attach(limits(<=>), t: "B") ( phi_1 -> phi_2 ) in Gamma^ast
+  $$
+  であるから、含意について成り立つ。なお、A, B, C, Dはそれぞれ以下の補題または性質を用いている。
+   - A: 帰納法の仮定
+   - B: @lem-max-cons-imp-bicond
+
+いづれの場合も、$[|phi|]_v = 1 <=> phi in Gamma^ast$が成り立つ。したがって、すべての$phi in Gamma^ast$について$[|phi|]_v = 1$である。特に、$Gamma subset.eq Gamma^ast$であったので、すべての$phi in Gamma$についても$[|phi|]_v = 1$である。
+
+以上より証明は完了した。$square.filled$
+:::
+
+@lem-max-cons-val-exist の系として、以下が成り立つ。
+
+:::column-toc
+(cor-cons-val-exist)=
+@title:【系】導出可能性と付値の存在の同値性
+
+**【主張】**
+以下の2つは同値である。
+
+1. $Gamma tack.r.not phi$
+2. すべての$phi in Gamma$について$[|phi|]_v = 1$となる付値$v$が存在し、かつ$[|phi|]_v = 0$である。
+
+**【証明】**
+$Gamma tack.r.not phi$であるとする。このとき、$Gamma tack.r.short bot$であるなら、矛盾の消去規則より、$Gamma tack.r.short phi$であるので不適。したがって$Gamma$は無矛盾である。また、$Gamma union {not phi} tack.r.short bot$であるなら、背理法の規則より、$Gamma tack.r.short phi$であるので不適。したがって、$Gamma union {not phi}$も無矛盾である。
+
+当然、$Gamma tack.r.short phi$なら$Gamma union {not phi} tack.r.short bot$であり、$Gamma union {not phi}$は無矛盾ではない。
+:::prooftree
+rule(
+   name:[$-> "E"$],
+   $bot$,
+   align(center)[#stack(dir: ttb, spacing: 4pt)[$Gamma$][$dots.v$][$phi$]],
+   $phi -> bot$,
+)
+:::
+
+なので、
+
+- $Gamma tack.r.not phi$
+- $Gamma union {not phi}$は無矛盾である
+
+は同値である。ここで、@lem-max-cons-val-exist より、
+
+- $Gamma union {not phi}$は無矛盾である
+- すべての$psi in Gamma union {not phi}$について$[|psi|]_v = 1$となる付値$v$が存在する
+- すべての$psi in Gamma$について$[|psi|]_v = 1$となる付値$v$が存在し、かつ$[|not phi|]_v = 1$である
+
+は同値である。ここで、$[|not phi|]_v = 1$は$[|phi|]_v = 0$と同値である。したがって、以下の2つは同値である。
+
+1. $Gamma tack.r.not phi$
+2. すべての$phi in Gamma$について$[|phi|]_v = 1$となる付値$v$が存在し、かつ$[|phi|]_v = 0$である。
+
+以上で証明が完了した。$square.filled$
+
+:::
+
+さて、@cor-cons-val-exist を用いて、自然演繹の完全性を示す。
+
+:::column-toc
+(thm-natural-deduction-completeness)=
+@title: 【定理】自然演繹の完全性
+
+**【主張】**
+自然演繹は完全である。すなわち、$Gamma models phi$ならば$Gamma tack.r.short phi$である。
+
+**【証明】**
+対偶を示す。すなわち、$Gamma tack.r.not phi$ならば$Gamma tack.r.double.not phi$であることを示す。
+
+$Gamma tack.r.not phi$であるとする。このとき、@cor-cons-val-exist より、すべての$psi in Gamma$について$[|psi|]_v = 1$となる付値$v$が存在し、かつ$[|phi|]_v = 0$である。したがって、すべての$sigma in Gamma$について$[|sigma|]_v = 1$となる付値$v$に対して$[|phi|]_v = 0$であるから、$Gamma models phi$の定義である
+$$
+forall v : italic("ATOM") -> {0, 1}, ( forall sigma in Gamma, [|sigma|]_v = 1 ) => [|phi|]_v = 1
+$$
+
+は成り立たない。したがって、$Gamma tack.r.double.not phi$である。$square.filled$
+:::
