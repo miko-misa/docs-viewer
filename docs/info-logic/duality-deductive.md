@@ -290,6 +290,7 @@ $square.filled$
 
 
 :::column-toc
+(lem-max-consistent-existence)=
 @title:【補題】極大無矛盾集合の構成
 
 **【主張】**
