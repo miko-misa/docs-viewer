@@ -237,8 +237,8 @@ rule(
 
 つまり、証明はただ単にその真偽を示すだけでなく、その命題がどのようにして真であるかを具体的に示すものである。BHK解釈は直観主義論理の基礎を成しており、命題の意味を理解するための重要な枠組みを提供している。これによっても、背理法が直観主義論理で認められない理由が説明できる。$not not phi$とは$not phi$を証明するどんな手順を持ってきてもそれは矛盾$bot$に導くような手順があることを意味する。しかし、これは必ずしも$phi$の具体的な証明手順が存在することを意味しない。したがって、直観主義論理では$not not phi$から$phi$を導くことはできないのである。
 
-# 自然演繹法の問題点と拡張
-## シーケント計算
+# 自然演繹法の問題点と解決策
+## (sec-natural-problem)= 自然演繹法の問題点
 自然演繹法は非常に直感的で理解しやすい推論体系である。しかし、いくつかの問題点も存在する。
 
 1. 証明図が`DAG`構造
@@ -281,13 +281,239 @@ rule(
    ::::
    この非対称性は証明図の構造を複雑にし、理解を難しくする要因となっている。
 
-
-これらの問題点を解決するために、**シーケント計算(sequent calculus)** という別の推論体系が提案された。シーケント計算では、証明図が木構造となり、双対性が保たれるように設計されている。これにより、証明図の管理が容易になり、理解しやすくなる。また、シーケント計算では仮定の管理も明確であり、見えない仮定の問題も解決される。具体的には、シーケント計算では **シーケント(sequent)** という形式を用いて推論を行う。シーケントは以下のような形式を持つ。
+## シーケント計算（LK）
+@sec-natural-problem を解決するために、**シーケント計算(sequent calculus; LK)** という別の推論体系が提案された。シーケント計算では、証明図が木構造となり、双対性が保たれるように設計されている。これにより、証明図の管理が容易になり、理解しやすくなる。また、シーケント計算では仮定の管理も明確であり、見えない仮定の問題も解決される。具体的には、シーケント計算では **シーケント(sequent)** という形式を用いて推論を行う。シーケントは以下のような形式を持つ。
 $$
 Gamma tack.r.short Delta
 $$
 ここで、$Gamma$は前件(antecedent)と呼ばれ、仮定の集合を表す。$Delta$は後件(succedent)と呼ばれ、結論の集合を表す。
 :::annotation
-シークエント計算の前件と後件は線形リストとして表現されることもあるがここでは集合として扱っている。
+シークエント計算の前件と後件は線形リストとして表現されることもあるり、カンマ区切りで複数の命題論理式を並べる書き方は本来、線形リストの表現である。しかし、ここでは簡単のため集合として扱う。
 :::
-シーケント計算では、各命題論理の結合子に対して導入規則と除去規則が定義されており、これらの規則を用いてシーケントから新たなシーケントを導出していく。
+前件すべての命題が真であるならば、後件のいずれか1つ以上の命題が真であることを意味する。
+
+シーケント計算では、各命題論理の結合子に対して導入規則と除去規則が定義されており、これらの規則を用いてシーケントから新たなシーケントを導出していく。規則には必ず右側規則と左側規則が存在し、双対性が保たれている。下に、古典論理のシーケント計算における規則を示す。なお、ここでは公理は採用しない。
+:::annotation
+公理を用いてシーケント計算を定義することもできるが、ここでは省略する。
+:::
+
+1. 初期シークエント
+   :::prooftree
+   rule(
+      name:[Id],
+      $phi tack.r.short phi$,
+      $quad$
+   )
+   :::
+2. 矛盾の左側導入規則
+   :::prooftree
+   rule(
+      name:[$bot "L"$],
+      $Gamma, bot tack.r.short Delta$,
+      $quad$
+   )
+   :::
+   左弱化規則$"WL"$との違いは前提となる$Gamma tack.r.short Delta$が必要ない。
+3. 弱化
+   :::prooftree
+   rule(
+      name:[WL],
+      $Gamma, phi tack.r.short Delta$,
+      $Gamma tack.r.short Delta$,
+   )
+   :::
+   :::prooftree
+   rule(
+      name:[WR],
+      $Gamma tack.r.short Delta, phi$,
+      $Gamma tack.r.short Delta$,
+   )
+   :::
+4. カット
+   :::prooftree
+   rule(
+      name:[Cut],
+      $Gamma, Gamma' tack.r.short Delta, Delta'$,
+      $Gamma tack.r.short Delta, phi$,
+      $Gamma', phi tack.r.short Delta'$,
+   )
+   :::
+5. 連言
+   - 連言の左側導入規則
+     :::prooftree
+     rule(
+        name:[$and "L"_1$],
+        $Gamma, phi and psi tack.r.short Delta$,
+        $Gamma, phi tack.r.short Delta$,
+     )
+     :::
+     $Gamma, psi tack.r.short Delta$から導出する場合は$and "L"_2$を用いる。
+   - 連言の右側導入規則
+     :::prooftree
+     rule(
+        name:[$and$ R],
+        $Gamma, Gamma' tack.r.short Delta, Delta', phi and psi$,
+        $Gamma tack.r.short Delta, phi$,
+        $Gamma' tack.r.short Delta', psi$,
+     )
+     :::
+6. 選言
+   - 選言の左側導入規則
+     :::prooftree
+     rule(
+        name:[$or "L"$],
+        $Gamma, Gamma', phi or psi tack.r.short Delta, Delta'$,
+        $Gamma, phi tack.r.short Delta$,
+        $Gamma', psi tack.r.short Delta'$,
+     )
+     :::
+   - 選言の右側導入規則
+     :::prooftree
+     rule(
+        name:[$or "R"_1$],
+        $Gamma tack.r.short Delta, phi or psi$,
+        $Gamma tack.r.short Delta, phi$,
+     )
+     :::
+     $Gamma tack.r.short Delta, psi$から導出する場合は$or "R"_2$を用いる。
+7. 含意
+   - 含意の左側導入規則
+     :::prooftree
+     rule(
+        name:[$-> "L"$],
+        $Gamma, Gamma', phi -> psi tack.r.short Delta, Delta'$,
+        $Gamma tack.r.short Delta, phi$,
+        $Gamma', psi tack.r.short Delta'$,
+     )
+     :::
+   - 含意の右側導入規則
+     :::prooftree
+     rule(
+        name:[$-> "R"$],
+        $Gamma tack.r.short Delta, phi -> psi$,
+        $Gamma, phi tack.r.short Delta, psi$,
+     )
+     :::
+8. 否定
+   - 否定の左側導入規則
+     :::prooftree
+     rule(
+        name:[$not "L"$],
+        $Gamma, not phi tack.r.short Delta$,
+        $Gamma tack.r.short Delta, phi$,
+     )
+     :::
+   - 否定の右側導入規則
+     :::prooftree
+     rule(
+        name:[$not "R"$],
+        $Gamma tack.r.short Delta, not phi$,
+        $Gamma, phi tack.r.short Delta$,
+     )
+     :::
+
+シークエント計算では、自然演繹で見られた除去規則が存在しないことに注意されたい。これは、シークエント計算においては各結合子に対して左側導入規則と右側導入規則が存在し、これらが双対的に機能するためである。強いて言えば除去規則は左導入規則に対応している。導入を進めるには、右側導入規則を用い、なおかつ後件から命題を削除するためにカット規則を用いる必要がある。
+
+## シークエント計算の例
+@natural-deduction/sec-natural-ex で示した命題をシークエント計算で証明してみる。証明する対象は
+$$
+(p -> q) and (not p -> r) => (p and q) or (not p and r)
+$$
+まず、$p -> q, not p -> r, p or not p tack.r.short (p and q) or (not p and r)$を証明する。証明図は以下のようになる。
+:::prooftree
+rule(
+   name:[$or "L"$],
+   $p -> q, not p -> r, p or not p tack.r.short (p and q) or (not p and r)$,
+   rule(
+      name:[$or "R"_1$],
+      $p -> q, p tack.r.short (p and q) or (not p and r)$,
+      rule(
+         name:[$and$ R],
+         $p -> q, p tack.r.short p and q$,
+         rule(
+            name:[$-> "L"$],
+            $p -> q, p tack.r.short q$,
+            rule(
+               name:[Id],
+               $p tack.r.short p$,
+               $quad$
+            ),
+            rule(
+               name:[Id],
+               $q tack.r.short q$,
+               $quad$
+            ),
+         ),
+         rule(
+            name:[Id],
+            $p tack.r.short p$,
+            $quad$
+         ),
+      ),
+   ),
+   rule(
+      name:[$or "R"_2$],
+      $not p -> r, not p tack.r.short (p and q) or (not p and r)$,
+      rule(
+         name:[$and$ R],
+         $not p -> r, not p tack.r.short not p and r$,
+         rule(
+            name:[$-> "L"$],
+            $not p -> r, not p tack.r.short r$,
+            rule(
+               name:[Id],
+               $not p tack.r.short not p$,
+               $quad$
+            ),
+            rule(
+               name:[Id],
+               $r tack.r.short r$,
+               $quad$
+            ),
+         ),
+         rule(
+            name:[Id],
+            $not p tack.r.short not p$,
+            $quad$
+         ),
+      ),
+   )
+)
+:::
+
+次に、$p or not p$を証明する。証明図は以下のようになる。
+
+:::prooftree
+rule(
+   name:[],
+   $tack.r.short p or not p$,
+   rule(
+      name:[$or "R"_1$],
+      $tack.r.short p or not p, p or not p$,
+      rule(
+         name:[$or "R"_2$],
+         $tack.r.short p or not p, p$,
+         rule(
+            name:[$not "R"$],
+            $tack.r.short not p, p$,
+            rule(
+               name:[Id],
+               $p tack.r.short p$,
+               $quad$
+            ),
+         )
+      )
+   )
+)
+:::
+
+最後に、カット規則を用いてこれらを組み合わせる。
+:::prooftree
+rule(
+   name:[Cut],
+   $p -> q, not p -> r tack.r.short (p and q) or (not p and r)$,
+   align(center)[#stack(dir: ttb, spacing: 4pt)[$dots.v$][$p -> q, not p -> r, p or not p tack.r.short (p and q) or (not p and r)$]],
+   align(center)[#stack(dir: ttb, spacing: 4pt)[$dots.v$][$tack.r.short p or not p$]],
+)
+:::
+これにより、最終的に$(p -> q) and (not p -> r) tack.r.short (p and q) or (not p and r)$が証明できたことになる。

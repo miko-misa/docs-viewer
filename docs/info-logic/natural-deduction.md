@@ -172,7 +172,7 @@ rule(
 :::
 $psi$が$phi$を含まない$Gamma$のみで導出されている場合から、仮定に$phi$を追加し、$Gamma union {phi} tack.r.short psi$を得て、すぐに含意の導入規則を適用して$Gamma tack.r.short (phi -> psi)$を得ることができる。この場合、証明図に$phi$は現れないため、書かなくてよいが、含意の導入にはラベルを表記している。ラベルを参照して見つからない場合、弱化が行われていると考える。
 
-## 自然演繹の例
+## (sec-natural-ex)= 自然演繹の例
 
 例として$(p -> q) and (not p -> r) => (p and q) or (not p and r)$を証明してみる。これは$(p -> q)$と$(not p -> r)$を仮定した時に
 
