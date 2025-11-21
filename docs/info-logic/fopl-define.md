@@ -295,7 +295,7 @@ $$
 ## 代入
 **代入(substitution)** とは、ある一階述語論理式における特定の部分式を別の式に置き換える操作であり写像として定義される。代入は、変数の置換や部分式の置換など、さまざまな形で行われる。
 
-変数$x in italic("Var")$を項$t in italic("Term")$に置き換える代入$[t\/x]$を以下のように定義する。
+自由変数$x in italic("Var")$を項$t in italic("Term")$に置き換える代入$[t\/x]$を以下のように定義する。
 
 $$
 [t\/x]: italic("Term") &-> italic("Term")\
@@ -325,4 +325,70 @@ $$
 
 この定義からもわかる通り、自由変数に対してのみ代入が行われ、束縛変数に対しては影響を与えないことに注意されたい。
 
-論理式内に存在する置き換えるための指標$dollar$を **プレースホルダー(placeholder)** という。
+論理式内に存在する置き換えるための指標$dollar$を **プレースホルダー(placeholder)** という。このプレースホルダーを別の論理式$psi$に置き換える代入$[psi\/dollar]$を以下のように定義する。
+$$
+[psi\/dollar]: italic("Form") &-> italic("Form")\
+phi [psi\/dollar] &= cases(
+  psi quad "if " phi = dollar,
+  phi quad "if " phi eq.not dollar
+) quad (phi in italic("Form"))\
+(phi_1 square thin phi_2) [psi\/dollar] &= (phi_1 [psi\/dollar]) square thin (phi_2 [psi\/dollar])\
+&quad quad (square in italic("Conn"), phi_1, phi_2 in italic("Form"))\
+(not phi) [psi\/dollar] &= not (phi [psi\/dollar]) quad (phi in italic("Form"))\
+(forall x (phi)) [psi\/dollar] &= forall x (phi [psi\/dollar]) quad (x in italic("Var"), phi in italic("Form"))\
+(exists x (phi)) [psi\/dollar] &= exists x (phi [psi\/dollar]) quad (x in italic("Var"), phi in italic("Form"))\
+$$
+
+### 代入可能性
+**代入可能性(substitutability)** とは、ある代入について、その代入が論理式に対して適切に行えるかどうかを示す概念である。束縛されていない変数が代入によって束縛されてしまうことを防ぐために、代入可能性の条件が設けられている。ある一階述語論理式$phi$に対して、変数$x in italic("Var")$を項$t in italic("Term")$に置き換える代入$[t\/x]$が代入可能であるとは、$phi$が以下の条件を満たす場合をいう。
+
+- 項$t$に含まれるすべての変数が、式$phi$内の$x$の位置で束縛されていない。
+
+これは「$t "is free for" x "in" phi$」といい、そうでない場合は代入は定義されないということにする。
+
+また、ある一階述語論理式$phi$に対して、プレースホルダー$dollar$を式$psi in italic("Form")$に置き換える代入$[psi\/dollar]$が代入可能であるとは、$phi$が以下の条件を満たす場合をいう。
+
+- 式$phi$内のプレースホルダーの位置で、式$psi$に含まれるすべての自由変数が束縛されていない。
+
+これは「$psi "is free for" dollar "in" phi$」といい、そうでない場合は代入は定義されないということにする。
+
+:::column
+@title: 代入可能性を厳密に定義する
+
+代入可能性の条件をより厳密に定義するには再帰的に行う。以下にその説明を行う。
+
+
+---
+
+変数$x in italic("Var")$を項$t in italic("Term")$に置き換える代入$[t\/x]$を考える。
+
+- $phi in italic("ATOM")$のとき
+  $t "is free for" x "in" phi$である。
+- $phi = not psi$であるとき
+  $t "is free for" x "in" psi$であるならば、$t "is free for" x "in" phi$である。
+- $phi = psi_1 square thin psi_2$であるとき
+  $t "is free for" x "in" psi_1$かつ$t "is free for" x "in" psi_2$であるならば、$t "is free for" x "in" phi$である。
+- $phi = forall y (psi)$または$phi = exists y (psi)$であるとき
+  - $y = x$であるならば、$t "is free for" x "in" phi$である
+    :::annotation
+    $x$に対する量化が新たに導入されるため、一見すると代入できないように思えるが、代入の定義では式が変化しないという扱いになるため、問題は生じない。よって、代入可能とする。
+    :::
+  - $y eq.not x$であるとき
+    $t "is free for" x "in" psi$かつ$y in.not italic("FV")(t)$であるならば、$t "is free for" x "in" phi$である。
+
+---
+
+次に、プレースホルダー$dollar$を式$psi in italic("Form")$に置き換える代入$[psi\/dollar]$を考える。
+
+- $phi in italic("ATOM")$のとき
+  $psi "is free for" dollar "in" phi$である。
+- $phi = not sigma$であるとき
+  $psi "is free for" dollar "in" sigma$であるならば、$psi "is free for" dollar "in" phi$である。
+- $phi = sigma_1 square thin sigma_2$であるとき
+  $psi "is free for" dollar "in" sigma_1$かつ$psi "is free for" dollar "in" sigma_2$であるならば、$psi "is free for" dollar "in" phi$である。
+- $phi = forall x (sigma)$または$phi = exists x (sigma)$であるとき
+  $psi "is free for" dollar "in" sigma$かつ$x in.not italic("FV")(psi)$であるならば、$psi "is free for" dollar "in" phi$である。
+:::
+
+たとえば、式$exists x(y < x)$に対して、代入$[x\/y]$を考えてしまうと、束縛されていなかった$y$が$x$に置き換えられた結果、$exists x(x < x)$となり$y$だったものが束縛されてしまうため、これは代入可能ではない。一方で、式$exists y (y < z)$に対して、代入$[x\/z]$は代入可能である。
+
