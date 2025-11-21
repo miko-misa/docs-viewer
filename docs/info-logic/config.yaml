@@ -11,4 +11,5 @@ order:
   - duality-deductive
   - natural-deduction
   - natural-deduction-adv
+  - fopl-define
 
