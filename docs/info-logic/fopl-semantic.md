@@ -3,13 +3,13 @@ title: 一階述語論理の意味論
 ---
 
 # (fopl-semantic)= 一階述語論理の意味論
-一階述語論理(@fopl-define)の **意味論(semantics)** は、一階述語論理式の真偽値を決定するための体系であり、これまで文字列でしかなった一階述語論理に「意味」を与える。意味論は、構造(structure)や解釈(interpretation)といった概念を用いて、一階述語論理式がどのように評価されるかを定義する。
+一階述語論理(@fopl-define/sec-form)の **意味論(semantics)** は、一階述語論理式の真偽値を決定するための体系であり、これまで文字列でしかなった一階述語論理に「意味」を与える。意味論は、構造(structure)(@sec-structure)や解釈(interpretation)といった概念を用いて、一階述語論理式がどのように評価されるかを定義する。
 
 ## (sec-universe)= ユニバース
 一階述語論理の **ユニバース(universe)** は、解釈において対象となる要素の集合であり、通常は非空集合として定義される。一階述語論理では個体変数が存在したが、この個体変数が何を指示しているのかはユニバースによって決定される。また、$forall x$という量子化がどの集合全体での普遍性を表しているのかもユニバースによって決定される。
 
 ## (sec-structure)= 構造（ストラクチャ）
-一階述語論理の **構造(structure)** とは、一階述語論理のシグネチャ(@fopl-define/sec-signature)の記号に対して具体的な演算や関係を割り当てるものであり、ユニバースを基にして定義される。以下のように定義される。
+一階述語論理の **構造(structure)** とは、一階述語論理のシグネチャ(@fopl-define/sec-signature)の記号に対して具体的な演算や関係を割り当てるものであり、ユニバース(@sec-universe)を基にして定義される。以下のように定義される。
 
 一階述語論理の構造$cal(M)$は以下のように定義できる。
 
@@ -66,7 +66,7 @@ $$
 けるある式あるいは項$phi$の解釈は$[|phi|]_cal(M)$と表す。
 
 ### 閉項の解釈
-拡張言語$L(cal(M))$における閉項$t$の解釈は項上の写像(@fopl-define/sec-term-map)を用いて以下のように定義される。
+拡張言語$L(cal(M))$における閉項(@fopl-define/sec-closed-term)$t$の解釈は項上の写像(@fopl-define/sec-term-map)を用いて以下のように定義される。
 
 $$
 [||]_cal(M) : italic("Term"_c) &-> M\
@@ -101,7 +101,7 @@ $$
 $$
 
 ## 文の解釈
-一階述語論理の文$phi$の解釈は一階述語論理上の写像(@fopl-define/sec-fopl-map)を用いて以下のように定義される。ただし、$phi,psi$は文である。
+一階述語論理の文(@fopl-define/sec-sentence)$phi$の解釈は一階述語論理上の写像(@fopl-define/sec-fopl-map)を用いて以下のように定義される。ただし、$phi,psi$は文である。
 
 $$
 [||]_cal(M) : italic("Sent") &-> { 0, 1 }\
@@ -132,6 +132,5 @@ $$
 [| (forall x (phi)) |]_cal(M) &= min_( v in |cal(M)| ) ( [| phi[overline(v) \/ x] |]_cal(M) )\
 [| (exists x (phi)) |]_cal(M) &= max_( v in |cal(M)| ) ( [| phi[overline(v) \/ x] |]_cal(M) )
 $$
-
 
 

@@ -123,14 +123,14 @@ $$
 
 ここで、$kappa$は定数記号の濃度を表す。シミラリティタイプはシグネチャから一意に決定されるアリティをまとめたものである。つまり、シグネチャにおける「記号」を忘れそのアリティ情報だけを残したものである。なお、述語記号$dot(=)$はシミラリティタイプの定義から除外していることに注意されたい。
 
-## 項
+## (sec-term)= 項
 **項(term)** は、シグネチャ$L$と個体変数の集合$italic("Var")$に基づいて定義される。項全体は以下を満たす最小の集合$italic("Term")$である。
 
 1. すべての個体変数$x in italic("Var")$は項である。
 2. すべての定数記号$c in italic("Const")$は項である。
 3. もし$f in italic("Func")$がアリティ$n$を持ち、$t_1, t_2, ..., t_n$が項であるならば、$f(t_1, t_2, ..., t_n)$も項である。
 
-## 一階述語論理式
+## (sec-form)= 一階述語論理式
 **一階述語論理式(formula of first-order predicate logic)** をここでは単に **式(formula)** あるいは **論理式(logical formula)** と呼ぶことにする。式全体は以下を満たす最小の集合$italic("Form")$である。
 
 1. $bot in italic("Form")$である。
@@ -288,10 +288,10 @@ italic("FV")(forall x (P(x, y) and Q(y))) &= italic("FV")(P(x, y) and Q(y)) \\ {
 &= {y}
 $$
 
-### 閉項
+### (sec-closed-term)= 閉項
 **閉項(closed term)** とは、自由変数を含まない、つまり$italic("FV")(t) = emptyset$となる項$t$である。つまり、閉項はすべての変数が定数記号または関数記号によって構成されている項である。閉項全体の集合を$italic("Term"_c)$とする。
 
-### 文・閉式・閉論理式
+### (sec-sentence)= 文・閉式・閉論理式
 **文(sentence; closed formula; closed logical formula)** とは、自由変数を含まない、つまり$italic("FV")(phi) = emptyset$となる一階述語論理式である。つまり、文はすべての変数が量子化されている式$phi$である。文全体の集合を$italic("Sent")$とする。
 
 ## 代入
