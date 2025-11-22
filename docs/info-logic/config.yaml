@@ -12,4 +12,5 @@ order:
   - natural-deduction
   - natural-deduction-adv
   - fopl-define
+  - fopl-semantic
 

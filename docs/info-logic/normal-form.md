@@ -2,9 +2,9 @@
 title: "標準形"
 ---
 
-# 関数的完全性
+# (normal-form)= 関数的完全性
 
-命題論理における論理結合子
+命題論理(@prop-define)における論理結合子(@prop-define/sec-connective)
 :::annotation
 ここでは$bot$を含むことにする。結合子集合に$bot$がない場合は原始命題に$bot$が存在することに関係なく$bot$は命題論理式に出現しない。
 :::
@@ -45,7 +45,7 @@ flat^((n))(phi_1, phi_2, phi_3, dots, phi_n) approx tau
 $$
 
 これを$flat$の引数の個数$n$について帰納的に示す。
-まずは、$flat^((n))$の意味関数を$f$とする。$v$を任意の付値とすれば
+まずは、$flat^((n))$の意味関数(@semantic-func)を$f$とする。$v$を任意の付値(@semantic-func/sec-valuation)とすれば
 
 $$
 f &: {0,1}^n -> {0,1}\

@@ -2,17 +2,17 @@
 title: "双対性と演繹体系"
 ---
 
-# 双対性
+# (duality-deductive)= 双対性
 **双対性(duality)** とは一般的に、ある構造で定義された理論において、ある概念や具体的な記号や操作を「鏡映し」に入れかえても同じ性質を持っていたり定理が成り立ったりすることを指す。
 
-命題論理における双対性とは、ある命題$phi$について論理和と論理積、真理値$top$と$bot$を入れ替えた命題を$phi^d$と定義したとき、任意の命題論理式$phi$および$psi$に対して以下の等価式が成り立つことを指す。なお、$()^d$の正確な定義は後述する。
+命題論理(@prop-define)における双対性とは、ある命題$phi$について論理和(@prop-define/sec-connective)と論理積(@prop-define/sec-connective)、真理値$top$と$bot$(@prop-define/sec-atom)を入れ替えた命題を$phi^d$と定義したとき、任意の命題論理式$phi$および$psi$に対して以下の等価式が成り立つことを指す。なお、$()^d$の正確な定義は後述する。
 $$
 phi approx psi <=> phi^d approx psi^d
 $$
 
 つまり、$phi approx psi$が言えれば、$phi^d approx psi^d$も言え、またその逆も成り立つ。これを **双対性定理(duality theorem)** と呼ぶ。この証明は後述する。次に、$()^d$の定義を行い、補題を示した後に双対性定理の証明を行う。
 
-**双対化** $()^d$とは命題論理上の写像であり、以下のように定義される。ただし、この変換は元の命題が${and, or, not}$の結合子のみを用いて構成されていることを前提とする。${and, or, not}$は関数的に完全なので、$phi, psi$は任意の命題について${and, or, not}$で書き直したもの$italic("PROP")_ast$とする。
+**双対化** $()^d$とは命題論理上の写像(@prop-define/sec-prop-map)であり、以下のように定義される。ただし、この変換は元の命題が${and, or, not}$の結合子のみを用いて構成されていることを前提とする。${and, or, not}$は関数的に完全なので、$phi, psi$は任意の命題について${and, or, not}$で書き直したもの$italic("PROP")_ast$とする。
 $$
 ()^d &: italic("PROP")_ast -> italic("PROP")_ast\
 p^d &= p quad ( p in italic("ATOM") \\ {bot} )\
@@ -194,9 +194,9 @@ $$
 # 演繹体系
 これまで命題論理の意味論的側面について説明してきた。命題論理がどのような構文を持っているのか、またその命題に対して意味的な等価性を定義してきた。しかし、私たちはこの命題論理を正しく運用して結論を得るための規則を持ち合わせていない。好き勝手に原始命題と結合子を命題論理の定義に合わせて並べても、それが証明にはならない。そこで、**演繹体系(deductive system)** を導入する。 演繹体系とは、命題論理式を操作するための一連の規則であり、これにより新たな命題論理式を証明できるようになる。演繹体系にはその証明の最初に正しいと決められている公理と証明に使える道具にあたる推論規則が含まれている。命題論理に対しては主に以下の3つの演繹体系が知られている。
 
-- 自然演繹法(natural deduction)
-- シーケント計算(sequent calculus)
-- ヒルベルト・アッカーマン体系(Hilbert-Ackermann system)
+- 自然演繹法(@natural-deduction)(natural deduction)
+- シーケント計算(@natural-deduction-adv/sec-sequent-calculus)(sequent calculus)
+- ヒルベルト・アッカーマン体系(@natural-deduction-adv)(Hilbert-Ackermann system)
 
 また、これらの演繹体系はすべて**完全性(completeness)** と**健全性(soundness)** を満たすことが知られている。この二つの性質は、演繹体系と意味論的等価性が矛盾しないことを保証するものであり、演繹体系に必要な重要な性質である。
 
