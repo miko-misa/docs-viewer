@@ -3,13 +3,13 @@ title: 一階述語論理の意味論
 ---
 
 # (fopl-semantic)= 一階述語論理の意味論
-一階述語論理(@fopl-define/sec-form)の **意味論(semantics)** は、一階述語論理式の真偽値を決定するための体系であり、これまで文字列でしかなった一階述語論理に「意味」を与える。意味論は、構造(structure)(@sec-structure)や解釈(interpretation)といった概念を用いて、一階述語論理式がどのように評価されるかを定義する。
+@fopl-define/sec-formの **意味論(semantics)** は、一階述語論理式の真偽値を決定するための体系であり、これまで文字列でしかなった一階述語論理に「意味」を与える。意味論は、@sec-structureや解釈(interpretation)といった概念を用いて、一階述語論理式がどのように評価されるかを定義する。
 
 ## (sec-universe)= ユニバース
 一階述語論理の **ユニバース(universe)** は、解釈において対象となる要素の集合であり、通常は非空集合として定義される。一階述語論理では個体変数が存在したが、この個体変数が何を指示しているのかはユニバースによって決定される。また、$forall x$という量子化がどの集合全体での普遍性を表しているのかもユニバースによって決定される。
 
 ## (sec-structure)= 構造（ストラクチャ）
-一階述語論理の **構造(structure)** とは、一階述語論理のシグネチャ(@fopl-define/sec-signature)の記号に対して具体的な演算や関係を割り当てるものであり、ユニバース(@sec-universe)を基にして定義される。以下のように定義される。
+一階述語論理の **構造(structure)** とは、一階述語論理の@fopl-define/sec-signatureの記号に対して具体的な演算や関係を割り当てるものであり、@sec-universeを基にして定義される。以下のように定義される。
 
 一階述語論理の構造$cal(M)$は以下のように定義できる。
 
@@ -63,10 +63,10 @@ $$
 - 各関数記号$f_i in italic("Func")$に対して、構造$cal(M)$の関数$F_i$が対応付けられている。アリティは一致している。
 - 各定数記号$c_i in italic("Const")$に対して、構造$cal(M)$の要素$C_i$が対応付けられている。
 
-けるある式あるいは項$phi$の解釈は$[|phi|]_cal(M)$と表す。
+ある式、あるいは項$phi$の解釈は$[|phi|]_cal(M)$と表す。
 
-### 閉項の解釈
-拡張言語$L(cal(M))$における閉項(@fopl-define/sec-closed-term)$t$の解釈は項上の写像(@fopl-define/sec-term-map)を用いて以下のように定義される。
+### (sec-closed-term-iter)= 閉項の解釈
+拡張言語$L(cal(M))$における@fopl-define/sec-closed-term$t$の解釈は@fopl-define/sec-term-mapを用いて以下のように定義される。
 
 $$
 [||]_cal(M) : italic("Term"_c) &-> M\
@@ -75,6 +75,8 @@ $$
 [|f_i (t_1, t_2, ..., t_n)|]_cal(M) &= F_i ([|t_1|]_cal(M), [|t_2|]_cal(M), ..., [|t_n|]_cal(M))\
 &quad quad (f_i in italic("Func"), italic("ar")(f_i) = italic("ar")(F_i) = n, t_1, t_2, ..., t_n in italic("Term"))
 $$
+
+---
 
 たとえば、以下のようなシグネチャ$L$と構造$cal(N)$が与えられているとする。
 
@@ -100,8 +102,8 @@ $$
 &= 4
 $$
 
-## 文の解釈
-一階述語論理の文(@fopl-define/sec-sentence)$phi$の解釈は一階述語論理上の写像(@fopl-define/sec-fopl-map)を用いて以下のように定義される。ただし、$phi,psi$は文である。
+### 文の解釈
+拡張言語$L(cal(M))$における@fopl-define/sec-sentence$phi$の解釈は@fopl-define/sec-fopl-mapを用いて以下のように定義される。ただし、$phi,psi$は文である。
 
 $$
 [||]_cal(M) : italic("Sent") &-> { 0, 1 }\
@@ -109,7 +111,7 @@ $$
   1 quad " if " quad ([|t_1|]_cal(M), [|t_2|]_cal(M), ..., [|t_n|]_cal(M)) in R_i,
   0 quad "otherwise"
 )\
-&quad quad (P_i in italic("Pred"), italic("ar")(P_i) = italic("ar")(R_i) = n > 0, t_1, t_2, ..., t_n in italic("Term"))\
+&quad quad (P_i in italic("Pred"), italic("ar")(P_i) = italic("ar")(R_i) = n > 0, t_1, t_2, ..., t_n in italic("Term")_c)\
 [|P_i |]_cal(M) &= cases(
   1 quad "if" quad () in R_i <=> R_i eq.not emptyset,
   0 quad "otherwise"
@@ -133,4 +135,103 @@ $$
 [| (exists x (phi)) |]_cal(M) &= max_( v in |cal(M)| ) ( [| phi[overline(v) \/ x] |]_cal(M) )
 $$
 
+$phi$が@fopl-define/sec-sentence であるとき、自由変数がないため、$forall$や$exists$に対する解釈の定義よりすべての変数記号は何かの定数記号に置換されていてすべての項は @fopl-define/sec-closed-term になる。つまり、項$t$に対する解釈まで到達すると、これは@sec-closed-term-iter に帰着できる。
+
+---
+
+たとえば、@sec-closed-term-iter で定義したシグネチャ$L$と構造$cal(N)$が与えられているとする。なお、$|cal(N)| = {1, 2, 3}$という制限を加える。このとき、$[| forall x ( x + overline(0) dot(=) overline(0) + x ) |]_cal(N)$は以下のように計算される。
+
+$$
+[| forall x ( x + overline(0) dot(=) overline(0) + x ) |]_cal(N) &= min_( v in |cal(N)| ) ( [| ( overline(v) + overline(0) dot(=) overline(0) + overline(v) ) |]_cal(N) ) \
+&= min( [| ( overline(1) + overline(0) dot(=) overline(0) + overline(1) ) |]_cal(N),
+        [| ( overline(2) + overline(0) dot(=) overline(0) + overline(2) ) |]_cal(N),
+        [| ( overline(3) + overline(0) dot(=) overline(0) + overline(3) ) |]_cal(N) ) \
+&= min( R_(dot(=)) ([| overline(1) + overline(0) |]_cal(N), [| overline(0) + overline(1) |]_cal(N) ),
+        R_(dot(=)) ([| overline(2) + overline(0) |]_cal(N), [| overline(0) + overline(2) |]_cal(N) ),
+        R_(dot(=)) ([| overline(3) + overline(0) |]_cal(N), [| overline(0) + overline(3) |]_cal(N) ) ) \
+&= min( R_(dot(=)) ( [| overline(1) |]_cal(N) + [| overline(0) |]_cal(N),
+                      [| overline(0) |]_cal(N) + [| overline(1) |]_cal(N) ),\
+&quad quad R_(dot(=)) ( [| overline(2) |]_cal(N) + [| overline(0) |]_cal(N),
+                      [| overline(0) |]_cal(N) + [| overline(2) |]_cal(N) ),\
+&quad quad R_(dot(=)) ( [| overline(3) |]_cal(N) + [| overline(0) |]_cal(N),
+                      [| overline(0) |]_cal(N) + [| overline(3) |]_cal(N) ) ) \
+&= min( R_(dot(=)) ( 1 + 0, 0 + 1 ),
+        R_(dot(=)) ( 2 + 0, 0 + 2 ),
+        R_(dot(=)) ( 3 + 0, 0 + 3 ) ) \
+&= min( R_(dot(=)) (1, 1),
+        R_(dot(=)) (2, 2),
+        R_(dot(=)) (3, 3) ) \
+&= min( 1, 1, 1 ) \
+&= 1
+$$
+
+## 普遍閉包
+一階述語論理の式$phi$の **普遍閉包(universal closure)** とは、式$phi$のすべての自由変数を量化したものであり、以下のように定義される。
+
+一階述語論理の式$phi$の自由変数が$x_a_1, x_a_2, ..., x_a_n$であるとする。ただし、$a_1 < a_2 < ... < a_n$とする。このとき、式$phi$の普遍閉包$italic("Cl")(phi)$は以下のように定義される。
+$$
+italic("Cl")(phi) = (forall x_a_1) (forall x_a_2) ... (forall x_a_n) (phi)
+$$
+
+$italic("FV")(italic("Cl")(phi)) = emptyset$であり、普遍閉包は常に文となる。
+
+## 充足関係
+一階述語論理式$phi$について$[|italic("Cl")(phi)|]_cal(M) = 1$であるとき、構造$cal(M)$は式$phi$を **充足(satisfy)** しているといい
+$$
+cal(M) models phi
+$$
+と書く。$models$は充足関係を表す記号である。特に$phi$が文である場合、$[|phi|]_cal(M) = 1$であることが、構造$cal(M)$は式$phi$を充足しているということになる。
+
+一階述語論理式$phi$を充足できる構造$cal(M)$が存在するとき、式$phi$は **充足可能(satisfiable)** であるという。つまり、ある構造$cal(M)$が存在して、$cal(M) models phi$が成り立つとき、式$phi$は充足可能であるという。
+
+また、シグネチャ$L$の論理式$phi$は$L$と同じシミラリティタイプをもつすべての構造で充足するとき、
+$$
+models phi
+$$
+と書く。このとき、式$phi$は **恒真(valid)** であるという。
+
+## 論理的帰結
+$Gamma$を@fopl-define/sec-sentenceの集合とする。このとき、すべての$psi in Gamma$について$cal(M) models psi$が成り立つとき、構造$cal(M)$は$Gamma$を充足しているという。これを
+$$
+cal(M) models Gamma
+$$
+と書く。
+
+ここで、文$phi in italic("Sent")$が$Gamma in cal(P)(italic("Sent"))$からの **論理的帰結(logical consequence)** であるとは、$cal(M) models Gamma$となるようなすべての構造$cal(M)$について、$cal(M) models phi$が成り立つときにいう。これを
+$$
+Gamma models phi
+$$
+と書く。ここまでの定義は命題論理に対して @semantic-func/sec-valuation で行ってきた議論を「構造」という概念に置き換えたものである。
+
+## モデル
+モデルという言葉は論理式と論理式の集合に対して用いられ、以下の2つ定義がある。
+
+- 構造$cal(M)$が$phi in italic("Form")$を充足しているとき、$cal(M)$は式$phi$の **モデル(model)** であるという。
+- 構造$cal(M)$が$Gamma in cal(P)(italic("Form"))$を充足しているとき、$cal(M)$は式集合$Gamma$の **モデル(model)** であるという。
+
+## 割当による充足
+一階述語論理の式$phi$の自由変数を$x_a_1, x_a_2, ..., x_a_n$とする。ただし、$a_1 < a_2 < ... < a_n$とする。このとき、$phi$が$v_1, v_2, ..., v_n in |cal(M)|$によって **充足される(satisfied by)** とは、
+$$
+[| phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ] |]_cal(M) = 1
+$$
+
+であることをいう。
+ただし、$phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ] = phi[ overline(v_1) \/ x_a_1 ][ overline(v_2) \/ x_a_2 ] ... [ overline(v_n) \/ x_a_n ]$である。
+
+:::column
+@title: より一般的な解釈の定義
+
+**変数割当(variable assignment)** $s$とは、自由変数からユニバースの元への写像であり、$s: italic("FV")(phi) -> |cal(M)|$である。このとき、項（@fopl-define/sec-closed-term でなくてもよい）に対する解釈$[| t |]^cal(M)_s$を以下のように定義しなおす。
+$$
+[||]^cal(M)_s : italic("Term") &-> |cal(M)|\
+[| x_i |]^cal(M)_s &= s(x_i) quad (x_i in italic("FV")(phi))\
+[|overline(v)|]^cal(M)_s &= v quad (overline(v) in.not italic("Const") and v in |cal(M)|)\
+[| c_i |]^cal(M)_s &= C_i quad (c_i in italic("Const"))\
+[| f_i (t_1, t_2, ..., t_n) |]^cal(M)_s &= F_i ([|t_1|]^cal(M)_s, [|t_2|]^cal(M)_s, ..., [|t_n|]^cal(M)_s)\
+&quad quad (f_i in italic("Func"), italic("ar")(f_i) = italic("ar")(F_i) = n, t_1, t_2, ..., t_n in italic("Term"))
+$$
+
+一階述語論理式（@fopl-define/sec-sentence でなくてもよい）に対する解釈$[||]^cal(M)_s$は先ほど定義した$[||]_cal(M)$と同じように定義される。この構造$cal(M)$と変数割当$s$の組$(cal(M), s)$こそが、**解釈(interpretation)** であるといえる。この定義では、項や式に自由変数が含まれていても普遍閉包を取る必要がなくなる。
+
+:::
 

@@ -6,7 +6,7 @@ title: 自然演繹法とその健全性・完全性
 
 ## (sec-natural-target)= 対象とする命題論理
 
-ここでは命題論理(@prop-define)に対する自然演繹法を考えるが、その命題論理については結合子として$->, and, bot$のみを持つものとする。${->, and, bot}$は関数的に完全であるから、意味論的な範囲が制限されることはない。必ず、考えたい命題を意味的に等価に書き換えたものを考えることができる。ここで簡単に書き換えを明示しておく。
+ここでは命題論理に対する自然演繹法を考えるが、その命題論理については@prop-define/sec-connectiveとして$->, and, bot$のみを持つものとする。${->, and, bot}$は関数的に完全であるから、意味論的な範囲が制限されることはない。必ず、考えたい命題を意味的に等価に書き換えたものを考えることができる。ここで簡単に書き換えを明示しておく。
 
 - **否定** : $not phi approx (phi -> bot)$
 - **選言** : $phi or psi approx not ( not phi and not psi ) approx ((phi -> bot) and (psi -> bot)) -> bot$
@@ -147,11 +147,11 @@ rule(
 ## (sec-explosion-rule)= 爆発則
 爆発則は一見すると奇妙な規則であるが、意味論に裏付けされている。すなわち、仮定から$bot$が導出できている場合、どんな命題$phi$も導出できるという規則であるが、これは次のように説明できる。
 
-意味論(@semantic-func)において、$Gamma models bot$とは,$Gamma$内のすべての命題$phi$について$[|phi|]_v = 1$となる共通の付値$v$が存在しないことを意味する。なぜなら、$[|bot|]_v = 0$であるからである。つまり、$Gamma$内で矛盾が発生している。
+意味論において、$Gamma models bot$とは,$Gamma$内のすべての命題$phi$について$[|phi|]_v = 1$となる共通の付値$v$が存在しないことを意味する。なぜなら、$[|bot|]_v = 0$であるからである。つまり、$Gamma$内で矛盾が発生している。
 
 ここで、$phi tack.r.short psi$のとき、これは端的に$phi -> psi$が成り立っててほしい。つまり、$Gamma = {phi_1, phi_2, dots, phi_n} tack.r.short psi$について$phi_1 and phi_2 and ... and phi_n -> psi$が成り立つ。しかしながら、$Gamma$が矛盾しており$phi_1 and phi_2 and ... and phi_n$が常に偽である場合、$->$の意味論的規則から$psi$が何であれ、これは真となっててほしい。真となるものは、導出されるべきという完全性を課せば、$psi$には任意の命題を入れることができなければならず、それがルールとなっている。したがって、爆発則は意味論的に正当化される。
 
-改めて述べるが、この規則も自然演繹が完全性(@duality-deductive)と健全性(@duality-deductive)を持つことに寄与しており、上の説明のように完全性から導かれたり、他の理論から導かれるルールではない。つまり、完全性と健全性のためにこの規則が必要である、ということである。
+改めて述べるが、この規則も自然演繹が@duality-deductive/sec-soundness-completenessを持つことに寄与しており、上の説明のように完全性から導かれたり、他の理論から導かれるルールではない。つまり、完全性と健全性のためにこの規則が必要である、ということである。
 
 ## (sec-weakening)= 弱化
 弱化とは、すでに導出されている命題に対して、仮定に新たな命題を追加しても、導出される命題は変わらないという規則である。仮定は必ず用いなければならないわけではないので、仮定に新たな命題を追加しても導出される命題は変わらない。
@@ -318,8 +318,6 @@ $$
 Gamma tack.r.short phi => Gamma models phi
 $$
 
-これを構造に関する数学的帰納法で示す。
-
 :::column-toc
 (thm-natural-deduction-soundness)=
 @title: 自然演繹の健全性
@@ -368,7 +366,7 @@ $$
 3. **含意の導入規則**
    $psi$が集合命題$Gamma union {phi}$から導出された命題であり、$[|psi|]_v = 1 quad (v in V(Gamma union {phi}))$であると仮定する。含意の導入規則より、$Gamma tack.r.short (phi -> psi)$である。このとき、付値$v^prime in V(Gamma)$について考える。
 
-   $[|phi|]_(v^prime) = 1$の場合、定義より$Gamma$全体にも$phi$にも意味関数(@semantic-func)を$1$とするので、$v^prime in Gamma union {phi}$である。つまり、$[|psi|]_(v^prime) = 1$である。よって、付値$v^prime$について、
+   $[|phi|]_(v^prime) = 1$の場合、定義より$Gamma$全体にも$phi$にも意味関数(@semantic-func/semantic-func)を$1$とするので、$v^prime in Gamma union {phi}$である。つまり、$[|psi|]_(v^prime) = 1$である。よって、付値$v^prime$について、
    $$
    [|phi -> psi|]_(v^prime) &= cases(
       1 & quad "if" [|phi|]_(v^prime) = 0,
@@ -418,7 +416,7 @@ $$
 Gamma models phi => Gamma tack.r.short phi
 $$
 
-この証明は極大無矛盾集合(@duality-deductive)を用いて行う。この自然演繹の推測規則から以下の補題を順に示せる。
+この証明は極大無矛盾集合(@duality-deductive/duality-deductive)を用いて行う。この自然演繹の推測規則から以下の補題を順に示せる。
 
 :::column-toc
 (lem-max-cons-closure)=

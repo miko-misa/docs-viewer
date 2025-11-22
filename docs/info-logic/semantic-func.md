@@ -4,7 +4,7 @@ title: "意味関数と代入"
 
 # (semantic-func)= 意味関数
 
-命題論理(@prop-define)の**意味関数(semantic function)** とは、命題論理の式に対して真偽値を割り当てる命題論理上の写像(@prop-define/sec-prop-map)である。まず、先述したように命題論理上の写像(@prop-define/sec-prop-map)では以下のような写像を先に準備する。これは写像を定義するために必要なものであったことは注意されたい。
+@prop-define/prop-defineの**意味関数(semantic function)** とは、命題論理の式に対して真偽値を割り当てる@prop-define/sec-prop-mapである。まず、先述したように@prop-define/sec-prop-mapでは以下のような写像を先に準備する。これは写像を定義するために必要なものであったことは注意されたい。
 
 $$
 v:& italic("ATOM") -> {0, 1}\
@@ -123,7 +123,7 @@ $$
 $models ( phi -> psi)$であるとき、任意の付値$v$について
 
 $$
-[| phi -> psi |]*v &= 1\
+[| phi -> psi |]_v &= 1\
 F_(->)([| phi |]_v, [| psi |]_v) &= 1
 $$
 
@@ -142,7 +142,7 @@ $$
 命題論理の式$phi, psi in italic("PROP")$が **意味論的等価(semantic equivalence)** であるとは、任意の付値$v$について
 
 $$
-models (phi -> psi)\
+models (phi <-> psi)\
 <=> [| phi |]_v = [| psi |]_v
 $$
 
@@ -243,7 +243,7 @@ $$
 
 # 代入
 
-命題論理の **代入(substitution)** とは命題論理上に定義された写像の一種で、命題論理の原始命題(@prop-define/sec-atom)の出現を別の命題論理で置き換えることである。出現とは命題論理で命題記号が文字列として書かれている部分のことである。正確な定義は以下である。
+命題論理の **代入(substitution)** とは命題論理上に定義された写像の一種で、命題論理の@prop-define/sec-atomの出現を別の命題論理で置き換えることである。出現とは命題論理で命題記号が文字列として書かれている部分のことである。正確な定義は以下である。
 
 原始命題$p in italic("ATOM")$に対する命題論理$psi in italic("PROP")$の代入$[psi slash p]$とは以下のような写像である。ただし、$p in italic("ATOM")$および$psi in italic("PROP")$である。
 
@@ -311,7 +311,7 @@ $$
 [| phi_1 |]_v = [| phi_2 |]_v
 $$
 
-である。示したい命題を命題論理に関する構造的帰納法で証明する。
+である。示したい命題を命題論理に関する@set-relation/sec-structural-inductionで証明する。
 
 ---
 

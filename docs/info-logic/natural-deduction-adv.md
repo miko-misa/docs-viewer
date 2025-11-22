@@ -7,7 +7,7 @@ title: 自然演繹法の発展と問題点
 ## 他の演算子について
 @natural-deduction/sec-natural-target で述べたように、対象とする命題論理は$->, and, bot$のみを結合子として持つものである。したがって、他の結合子についてはそれらの書き換えとしてきた。しかし、自然演繹法においては、他の結合子についても直接導入・除去規則を定義することができる。以下にそれらを示し、私たちの制限された自然演繹でどのように示されるかみてみよう。
 
-1. 選言(@prop-define/sec-connective)の導入規則
+1. 選言の導入規則
    $$
    Gamma tack.r.short phi thick => thick Gamma tack.r.short phi or psi
    $$
@@ -40,7 +40,7 @@ title: 自然演繹法の発展と問題点
       $phi$
    )
    :::
-2. 選言(@prop-define/sec-connective)の除去規則
+2. 選言の除去規則
    $$
    Gamma tack.r.short phi or psi thick "and" thick Delta, phi tack.r.short sigma thick "and" thick Epsilon, psi tack.r.short sigma thick => thick Gamma union Delta union Epsilon tack.r.short sigma
    $$
@@ -91,7 +91,7 @@ title: 自然演繹法の発展と問題点
       align(center)[#stack(dir: ttb, spacing: 4pt)[$Epsilon quad [psi]^ell$][$dots.v$][$sigma$]],
    )
    :::
-3. 否定(@prop-define/sec-connective)の導入規則
+3. 否定の導入規則
    $$
    Gamma, phi tack.r.short bot thick => thick Gamma tack.r.short not phi
    $$
@@ -108,7 +108,7 @@ title: 自然演繹法の発展と問題点
    )
    :::
    ほとんど含意の導入規則と同じである。
-4. 否定(@prop-define/sec-connective)の除去規則
+4. 否定の除去規則
    $$
    Gamma tack.r.short phi thick "and" thick Delta tack.r.short not phi thick => thick Gamma union Delta tack.r.short bot
    $$
@@ -121,7 +121,7 @@ title: 自然演繹法の発展と問題点
       align(center)[#stack(dir: ttb, spacing: 4pt)[$Delta$][$dots.v$][$not phi$]],
    )
    :::
-5. 同値(@prop-define/sec-connective)の導入規則
+5. 同値の導入規則
    $$
    Gamma, psi tack.r.short phi thick "and" thick Delta, phi tack.r.short psi thick => thick Gamma union Delta tack.r.short phi <-> psi
    $$
@@ -138,7 +138,7 @@ title: 自然演繹法の発展と問題点
       align(center)[#stack(dir: ttb, spacing: 4pt)[$Delta quad [phi]^ell$][$dots.v$][$psi$]],
    )
    :::
-6. 同値(@prop-define/sec-connective)の除去規則
+6. 同値の除去規則
    $$
    Gamma tack.r.short phi <-> psi thick "and" thick Delta tack.r.short phi thick => thick Gamma union Delta tack.r.short psi
    $$
@@ -155,7 +155,7 @@ title: 自然演繹法の発展と問題点
 
 # 直観主義論理と背理法
 ## 直観主義論理とは
-自然演繹法(@natural-deduction)にて私たちは背理法(@natural-deduction/sec-reductio-ad-absurdum)の規則を採用した。これは古典論理における重要な推論規則である。しかし、背理法を認めない立場も存在する。この立場は **直観主義論理(constructive logic)** と呼ばれる。 直観主義論理では弱い背理法は採用される。
+@natural-deduction/natural-deductionにて私たちは@natural-deduction/sec-reductio-ad-absurdumの規則を採用した。これは古典論理における重要な推論規則である。しかし、背理法を認めない立場も存在する。この立場は **直観主義論理(constructive logic)** と呼ばれる。 直観主義論理では弱い背理法は採用される。
 
 :::prooftree
 rule(
