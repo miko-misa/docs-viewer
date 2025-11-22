@@ -215,6 +215,25 @@ async function collectExternalReferences(
     );
   }
 
+  const labelCache = new Map<string, LabelIndex>();
+  const loadLabelIndex = async (slug: string[]): Promise<LabelIndex | undefined> => {
+    const cacheKey = slug.join("/");
+    const cached = labelCache.get(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const targetDoc = await getDocBySlug(slug);
+      const labels = await collectLabels(targetDoc.content);
+      labelCache.set(cacheKey, labels);
+      return labels;
+    } catch (error) {
+      if (process.env.DEBUG_CROSS_REF) {
+        console.warn("[collectExternalReferences] failed to load doc", slug.join("/"), error);
+      }
+      return undefined;
+    }
+  };
+
   const regex = /@([a-z][a-z0-9-:\/]*)/gi;
   const seen = new Set<string>();
   let match: RegExpExecArray | null;
@@ -240,30 +259,17 @@ async function collectExternalReferences(
     seen.add(key);
 
     const targetSlug = [...baseSlug, ...fileSegments];
-    try {
-      const targetDoc = await getDocBySlug(targetSlug);
-      const targetLabels = await collectLabels(targetDoc.content);
-      const labelInfo = targetLabels.get(normalizedLabel);
-      if (!labelInfo) continue;
-      const docPath = `/${targetSlug.join("/")}`;
-      result.set(key, {
-        docPath,
-        elementId: labelInfo.elementId,
-        title: labelInfo.title,
-        type: labelInfo.type,
-      });
-    } catch (error) {
-      if (process.env.DEBUG_CROSS_REF) {
-        console.warn(
-          "[collectExternalReferences] failed to resolve",
-          targetSlug.join("/"),
-          "label",
-          normalizedLabel,
-          error,
-        );
-      }
-      continue;
-    }
+    const targetLabels = await loadLabelIndex(targetSlug);
+    if (!targetLabels) continue;
+    const labelInfo = targetLabels.get(normalizedLabel);
+    if (!labelInfo) continue;
+    const docPath = `/${targetSlug.join("/")}`;
+    result.set(key, {
+      docPath,
+      elementId: labelInfo.elementId,
+      title: labelInfo.title,
+      type: labelInfo.type,
+    });
   }
 
   return result;
