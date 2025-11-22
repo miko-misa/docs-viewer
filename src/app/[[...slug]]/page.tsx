@@ -15,9 +15,9 @@ import { renderMarkdown } from "@/lib/markdown";
 import { extractToc } from "@/lib/toc";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     slug?: string[];
-  };
+  }>;
 };
 
 type DocNavigation = {
@@ -87,7 +87,8 @@ async function buildNavigation(doc: DocRecord): Promise<DocNavigation> {
   return navigation;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   try {
     const doc = await getDocBySlug(params.slug);
     return {
@@ -115,7 +116,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function DocPage({ params }: PageProps) {
+export default async function DocPage(props: PageProps) {
+  const params = await props.params;
   let doc: DocRecord | undefined;
   let groupListing: Awaited<ReturnType<typeof getGroupListing>> | undefined;
   try {
