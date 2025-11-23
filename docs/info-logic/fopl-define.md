@@ -295,32 +295,32 @@ $$
 ### (sec-sentence)= 文・閉式
 **文(sentence; closed formula; closed logical formula)** とは、自由変数を含まない、つまり$italic("FV")(phi) = emptyset$となる一階述語論理式である。つまり、文はすべての変数が量子化されている式$phi$である。文全体の集合を$italic("Sent")$とする。
 
-## 代入
+## (sec-substitution)= 代入
 **代入(substitution)** とは、ある一階述語論理式における特定の部分式を別の式に置き換える操作であり写像として定義される。代入は、変数の置換や部分式の置換など、さまざまな形で行われる。
 
 自由変数$x in italic("Var")$を項$t in italic("Term")$に置き換える代入$[t\/x]$を以下のように定義する。
 
 $$
 [t\/x]: italic("Term") &-> italic("Term")\
-[t\/x](y) &= cases(
+(y)[t\/x] &= cases(
   t quad "if " y = x,
   y quad "if " y eq.not x
 ) quad (y in italic("Var"))\
-[t\/x](c) &= c quad (c in italic("Const"))\
-[t\/x](f(t_1, t_2, ..., t_n)) &= f(t_1[t\/x], t_2[t\/x], ..., t_n [t\/x])\
+(c)[t\/x] &= c quad (c in italic("Const"))\
+(f(t_1, t_2, ..., t_n))[t\/x] &= f(t_1[t\/x], t_2[t\/x], ..., t_n [t\/x])\
 &quad quad (f in italic("Func"), n = italic("ar")(f), t_1, t_2, ..., t_n in italic("Term"))\
 \
 [t\/x]: italic("Form") &-> italic("Form")\
-[t\/x](P_i (t_1, t_2, ..., t_n)) &= P_i (t_1 [t\/x], t_2 [t\/x], ..., t_n [t\/x])\
+(P_i (t_1, t_2, ..., t_n))[t\/x] &= P_i (t_1 [t\/x], t_2 [t\/x], ..., t_n [t\/x])\
 &quad quad (P_i in italic("Pred"), n = italic("ar")(P_i), t_1, t_2, ..., t_n in italic("Term"))\
-[t\/x](not phi) &= not (phi [t\/x]) quad (phi in italic("Form"))\
-[t\/x](phi square thin psi) &= (phi [t\/x]) square thin (psi [t\/x])\
+(not phi)[t\/x] &= not (phi [t\/x]) quad (phi in italic("Form"))\
+(phi square thin psi)[t\/x] &= (phi [t\/x]) square thin (psi [t\/x])\
 &quad quad (square in italic("Conn"), phi, psi in italic("Form"))\
-[t\/x](forall y (phi)) &= cases(
+(forall y (phi))[t\/x] &= cases(
   forall y (phi) quad "if " y = x,
   forall y (phi [t\/x]) quad "if " y eq.not x
 ) quad (y in italic("Var"), phi in italic("Form"))\
-[t\/x](exists y (phi)) &= cases(
+(exists y (phi))[t\/x] &= cases(
   exists y (phi) quad "if " y = x,
   exists y (phi [t\/x]) quad "if " y eq.not x
 ) quad (y in italic("Var"), phi in italic("Form"))\
