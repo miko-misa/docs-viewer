@@ -198,7 +198,7 @@ $$
 - @natural-deduction-adv/sec-sequent-calculus(sequent calculus)
 - ヒルベルト・アッカーマン体系(Hilbert-Ackermann system)
 
-また、これらの演繹体系はすべて**完全性(completeness)** と**健全性(soundness)** を満たすことが知られている。この二つの性質は、演繹体系と意味論的等価性が矛盾しないことを保証するものであり、演繹体系に必要な重要な性質である。
+また、これらの演繹体系はすべて **完全性 (completeness) ** と **健全性 (soundness) ** を満たすことが知られている。この二つの性質は、演繹体系と意味論的等価性が矛盾しないことを保証するものであり、演繹体系に必要な重要な性質である。
 
 ## 導出
 **導出(derivation)** とは、ある命題論理式が演繹体系の規則にしたがって他の命題論理式から導かれる過程を指す。ある仮定$phi_1, phi_2, dots, phi_n$から命題論理式$psi$が導出できるとき、
@@ -234,7 +234,7 @@ $$
 $$
 Gamma &tack.r.not bot
 $$
-が成り立つことを意味する。このとき、$Gamma$は **無矛盾集合(consistent set)** と呼ばれる。ここで、$Gamma$が**極大無矛盾集合(maximal consistent set)** であるとは、命題集合$Gamma$が以下の2つの条件を満たすことを指す。
+が成り立つことを意味する。このとき、$Gamma$は **無矛盾集合 (consistent set) ** と呼ばれる。ここで、$Gamma$が **極大無矛盾集合 (maximal consistent set) ** であるとは、命題集合$Gamma$が以下の2つの条件を満たすことを指す。
 
 1. **無矛盾性**: $Gamma$は無矛盾である。すなわち、$Gamma &tack.r.not bot$である。
 2. **極大性**: $Gamma$に新たな命題$phi$を追加した集合$Gamma union {phi}$が無矛盾であるならば、$phi in Gamma$である。すなわち、これ以上に大きい無矛盾集合は存在しない。

@@ -302,7 +302,7 @@ $$
 $phi_1 approx phi_2$を仮定する。つまり、
 
 $$
-models (phi_1 -> phi_2)
+models (phi_1 <-> phi_2)
 $$
 
 であり、任意の付値$v$について

@@ -241,3 +241,26 @@ $$
 
 :::
 
+## 意味的等価性
+一階述語論理式$phi$と$psi$が **意味的等価(semantically equivalent)** であるとは、$models (phi <-> psi)$が成り立つことをいい、
+$$
+phi approx psi
+$$
+と書く。つまり、すべての構造$cal(M)$について$[| phi |]_cal(M) = [| psi |]_cal(M)$が成り立つとき、式$phi$と$psi$は意味的等価であるという。
+
+
+:::column-toc
+@title: 意味的等価性に関する補題
+
+**主張**
+文$phi,psi$と構造$cal(M)$について以下が成り立つ。
+
+1. $cal(M) models (phi and psi) <=> cal(M) models phi$ "and" $cal(M) models psi$
+2. $cal(M) models (phi or psi) <=> cal(M) models phi$ "or" $cal(M) models psi$
+3. $cal(M) models (not phi) <=> not (cal(M) models phi)$
+4. $cal(M) models (phi -> psi) <=> (cal(M) models phi$ "implies" $cal(M) models psi)$
+5. $cal(M) models (phi <-> psi) <=> (cal(M) models phi$ "if and only if" $cal(M) models psi)$
+6. $cal(M) models (forall x (phi)) <=> forall v in |cal(M)|, cal(M) models phi[ overline(v) \/ x ]$
+7. $cal(M) models (exists x (phi)) <=> exists v in |cal(M)|, cal(M) models phi[ overline(v) \/ x ]$
+:::
+
