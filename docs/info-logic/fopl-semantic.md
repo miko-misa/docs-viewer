@@ -222,7 +222,7 @@ $$
 $$
 
 であることをいう。
-ただし、$phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ] = phi[ overline(v_1) \/ x_a_1 ][ overline(v_2) \/ x_a_2 ] ... [ overline(v_n) \/ x_a_n ]$である。なお、この順番によらず、どの順番で置換しても同じ結果になることは以下の補題で示しており、複数の変数をこのように置換することは同時代入と呼ばれる。
+ただし、$phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ] = phi[ overline(v_1) \/ x_a_1 ][ overline(v_2) \/ x_a_2 ] ... [ overline(v_n) \/ x_a_n ]$である。このとき、$phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ]$はすでに文となっており、含まれている全ての項は閉項となっていることに注意されたい。なお、この順番によらず、どの順番で置換しても同じ結果になることは以下の補題で示しており、複数の変数をこのように置換することは **同時代入** と呼ばれる。
 
 :::column-toc
 @title: 【補題】同時代入の順序の独立性
@@ -453,4 +453,59 @@ $$
 3. $x in.not italic("FV")(psi)$のとき$forall x (phi or psi) approx (forall x (phi)) or (psi)$
 4. $x in.not italic("FV")(psi)$のとき$exists x (phi and psi) approx (exists x (phi)) and (psi)$
 
+**【証明】**
+**1の証明**
+任意の構造$cal(M)$で$[|forall x (phi and psi)|]_cal(M) = 1$であるとする。すると、
+$$
+& [|forall x (phi and psi)|]_cal(M) = 1\
+<=> &max_(v in |cal(M)|) ([|(phi and psi)[overline(v) \/ x]|]_cal(M)) = 1\
+<=> &forall v in |cal(M)|, [|(phi and psi)[overline(v) \/ x]|]_cal(M) = 1\
+<=> &forall v in |cal(M)|, ([|phi[overline(v) \/ x]|]_cal(M) = 1 "かつ" [|psi[overline(v) \/ x]|]_cal(M) = 1)\
+<=> &forall v in |cal(M)|, [|phi[overline(v) \/ x]|]_cal(M) = 1 "かつ" forall v in |cal(M)|, [|psi[overline(v) \/ x]|]_cal(M) = 1\
+<=> &max_(v in |cal(M)|) ([|phi[overline(v) \/ x]|]_cal(M)) = 1 "かつ" max_(v in |cal(M)|) ([|phi[overline(v) \/ x]|]_cal(M)) = 1\
+<=> &[|forall x (phi)|]_cal(M) = 1 "かつ" [|forall x (psi)|]_cal(M) = 1\
+<=> &[|forall x (phi) and forall x (psi)|]_cal(M) = 1
+$$
+よって、$forall x (phi and psi) approx (forall x (phi)) and (forall x (psi))$である。
+
+**2の証明**
+任意の構造$cal(M)$で$[|exists x (phi or psi)|]_cal(M) = 1$であるとする。すると、
+$$
+& [|exists x (phi or psi)|]_cal(M) = 1\
+<=> &max_(v in |cal(M)|) ([|(phi or psi)[overline(v) \/ x]|]_cal(M)) = 1\
+<=> &exists v in |cal(M)|, [|(phi or psi)[overline(v) \/ x]|]_cal(M) = 1\
+<=> &exists v in |cal(M)|, ([|phi[overline(v) \/ x]|]_cal(M) = 1 "または" [|psi[overline(v) \/ x]|]_cal(M) = 1)\
+<=> &exists v in |cal(M)|, [|phi[overline(v) \/ x]|]_cal(M) = 1 "または" exists v in |cal(M)|, [|psi[overline(v) \/ x]|]_cal(M) = 1\
+<=> &max_(v in |cal(M)|) ([|phi[overline(v) \/ x]|]_cal(M)) = 1 "または" max_(v in |cal(M)|) ([|phi[overline(v) \/ x]|]_cal(M)) = 1\
+<=> &[|exists x (phi) or exists x (psi)|]_cal(M) = 1
+$$
+よって、$exists x (phi or psi) approx (exists x (phi)) or (exists x (psi))$である。
+
+**3の証明**
+$x in.not italic("FV")(psi)$であると仮定する。任意の構造$cal(M)$で$[|forall x (phi or psi)|]_cal(M) = 1$であるとする。すると、
+$$
+& [|forall x (phi or psi)|]_cal(M) = 1\
+<=> &max_(v in |cal(M)|) ([|(phi or psi)[overline(v) \/ x]|]_cal(M)) = 1\
+<=> &forall v in |cal(M)|, [|(phi or psi)[overline(v) \/ x]|]_cal(M) = 1\
+<=> &forall v in |cal(M)|, ([|phi[overline(v) \/ x]|]_cal(M) = 1 "または" [|psi[overline(v) \/ x]|]_cal(M) = 1)\
+<=> &forall v in |cal(M)|, ([|phi[overline(v) \/ x]|_cal(M) = 1 "または" [|psi|]_cal(M) = 1)\
+<=> & (forall v in |cal(M)|, [|phi[overline(v) \/ x]|]_cal(M) = 1) "または" [|psi|]_cal(M) = 1\
+<=> &max_(v in |cal(M)|) ([|phi[overline(v) \/ x]|]_cal(M)) = 1 "または" [|psi|]_cal(M) = 1\
+<=> &[|forall x (phi) or psi|]_cal(M) = 1
+$$
+よって、$forall x (phi or psi) approx (forall x (phi)) or (psi)$である。
+
+**4の証明**
+$x in.not italic("FV")(psi)$であると仮定する。任意の構造$cal(M)$で$[|exists x (phi and psi)|]_cal(M) = 1$であるとする。すると、
+$$
+& [|exists x (phi and psi)|]_cal(M) = 1\
+<=> &max_(v in |cal(M)|) ([|(phi and psi)[overline(v) \/ x]|]_cal(M)) = 1\
+<=> &exists v in |cal(M)|, [|(phi and psi)[overline(v) \/ x]|]_cal(M) = 1\
+<=> &exists v in |cal(M)|, ([|phi[overline(v) \/ x]|]_cal(M) = 1 "かつ" [|psi[overline(v) \/ x]|]_cal(M) = 1)\
+<=> &exists v in |cal(M)|, ([|phi[overline(v) \/ x]|]_cal(M) = 1 "かつ" [|psi|]_cal(M) = 1)\
+<=> & (exists v in |cal(M)|, [|phi[overline(v) \/ x]|]_cal(M) = 1) "かつ" [|psi|]_cal(M) = 1\
+<=> &max_(v in |cal(M)|) ([|phi[overline(v) \/ x]|]_cal(M)) = 1 "かつ" [|psi|]_cal(M) = 1\
+<=> &[|exists x (phi) and psi|]_cal(M) = 1
+$$
+よって、$exists x (phi and psi) approx (exists x (phi)) and (psi)$である。
 :::
