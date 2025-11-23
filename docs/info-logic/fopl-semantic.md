@@ -222,7 +222,59 @@ $$
 $$
 
 であることをいう。
-ただし、$phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ] = phi[ overline(v_1) \/ x_a_1 ][ overline(v_2) \/ x_a_2 ] ... [ overline(v_n) \/ x_a_n ]$である。
+ただし、$phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ] = phi[ overline(v_1) \/ x_a_1 ][ overline(v_2) \/ x_a_2 ] ... [ overline(v_n) \/ x_a_n ]$である。なお、この順番によらず、どの順番で置換しても同じ結果になることは以下の補題で示しており、複数の変数をこのように置換することは同時代入と呼ばれる。
+
+:::column-toc
+@title: 【補題】同時代入の順序の独立性
+
+**【主張】**
+文$phi$と自由変数$x, y in italic("FV")(phi)$および定数記号$overline(v), overline(w)$について、$x eq.not y$ならば以下が成り立つ。
+$$
+phi[ overline(v) \/ x ][ overline(w) \/ y ] = phi[ overline(w) \/ y ][ overline(v) \/ x ]
+$$
+
+**【証明】**
+帰納法で示す。まず、項$t$について示す。
+
+**基底部**
+1. $t = x$のとき、
+    $$
+    t[ overline(v) \/ x ][ overline(w) \/ y ] &= overline(v)[ overline(w) \/ y ] = overline(v)\
+    t[ overline(w) \/ y ][ overline(v) \/ x ] &= x[ overline(v) \/ x ] = overline(v)
+    $$
+2. $t = y$のとき、
+    $$
+    t[ overline(v) \/ x ][ overline(w) \/ y ] &= y[ overline(w) \/ y ] = overline(w)\
+    t[ overline(w) \/ y ][ overline(v) \/ x ] &= overline(w)[ overline(v) \/ x ] = overline(w)
+    $$
+3. $t = z$ ($z eq.not x$かつ$z eq.not y$)のとき、
+    $$
+    t[ overline(v) \/ x ][ overline(w) \/ y ] &= z[ overline(v) \/ x ] = z\
+    t[ overline(w) \/ y ][ overline(v) \/ x ] &= z[ overline(w) \/ y ] = z
+    $$
+4. $t = c_i$のとき、
+    $$
+    t[ overline(v) \/ x ][ overline(w) \/ y ] &= c_i[ overline(v) \/ x ] = c_i\
+    t[ overline(w) \/ y ][ overline(v) \/ x ] &= c_i[ overline(w) \/ y ] = c_i
+    $$
+
+**帰納部**
+$t = f_i (t_1, t_2, ..., t_n)$のとき、すべての$k = 1, 2, ..., n$について
+$$
+t_k [ overline(v) \/ x ][ overline(w) \/ y ] = t_k [ overline(w) \/ y ][ overline(v) \/ x ]
+$$
+が成り立つことを仮定する。よって、
+$$
+t[ overline(v) \/ x ][ overline(w) \/ y ] &= f_i ( t_1[ overline(v) \/ x ][ overline(w) \/ y ], t_2[ overline(v) \/ x ][ overline(w) \/ y ], ..., t_n[ overline(v) \/ x ][ overline(w) \/ y ] )\
+&= f_i ( t_1[ overline(w) \/ y ][ overline(v) \/ x ], t_2[ overline(w) \/ y ][ overline(v) \/ x ], ..., t_n[ overline(w) \/ y ][ overline(v) \/ x ] )\
+&= t[ overline(w) \/ y ][ overline(v) \/ x ]
+$$
+
+次に、これを基に一階述語論理の式について考えるが、$x$や$y$は自由変数であるため、式に対する代入の定義（@fopl-define/sec-substitution）から$phi$に対する代入は式の構文一切変化させず、項に対する代入に帰着できる。つまり、項に到達するまでに$[ overline(v) \/ x ][ overline(w) \/ y ]$と$[ overline(w) \/ y ][ overline(v) \/ x ]$に差がない。項に対する代入についてはすでに示したので、すべての式$phi$に対して$phi[ overline(v) \/ x ][ overline(w) \/ y ] = phi[ overline(w) \/ y ][ overline(v) \/ x ]$が成り立つ。
+
+:::
+
+さらに、より一般的な解釈の定義を以下に参考までに示す。
 
 :::column
 @title: より一般的な解釈の定義
@@ -250,17 +302,155 @@ $$
 
 
 :::column-toc
-@title: 意味的等価性に関する補題
+@title: 【補題】意味的等価性に関する補題
 
-**主張**
+**【主張】**
 文$phi,psi$と構造$cal(M)$について以下が成り立つ。
 
-1. $cal(M) models (phi and psi) <=> cal(M) models phi$ "and" $cal(M) models psi$
-2. $cal(M) models (phi or psi) <=> cal(M) models phi$ "or" $cal(M) models psi$
-3. $cal(M) models (not phi) <=> not (cal(M) models phi)$
-4. $cal(M) models (phi -> psi) <=> (cal(M) models phi$ "implies" $cal(M) models psi)$
-5. $cal(M) models (phi <-> psi) <=> (cal(M) models phi$ "if and only if" $cal(M) models psi)$
-6. $cal(M) models (forall x (phi)) <=> forall v in |cal(M)|, cal(M) models phi[ overline(v) \/ x ]$
-7. $cal(M) models (exists x (phi)) <=> exists v in |cal(M)|, cal(M) models phi[ overline(v) \/ x ]$
+1. $cal(M) models (phi and psi) <=> cal(M) models phi$ かつ $cal(M) models psi$
+2. $cal(M) models (phi or psi) <=> cal(M) models phi$ または $cal(M) models psi$
+3. $cal(M) models (not phi) <=> cal(M) models phi$ でない
+4. $cal(M) models (phi -> psi) <=> (cal(M) models phi$ ならば $cal(M) models psi)$
+5. $cal(M) models (phi <-> psi) <=> cal(M) models phi$ と $cal(M) models psi$ は同値
+6. $cal(M) models (forall x (phi)) <=> $ すべての$v in |cal(M)|$ について $cal(M) models phi[ overline(v) \/ x ]$
+7. $cal(M) models (exists x (phi)) <=> $ ある$v in |cal(M)|$ が存在して $cal(M) models phi[ overline(v) \/ x ]$
+
+**【証明】**
+1から5までは、同様に示せるのでここでは例として1を示し、6,7も示す。
+
+**1の証明**
+$cal(M) models (phi and psi)$を仮定すると、$[| (phi and psi) |]_cal(M) = 1$である。よって、
+
+$$
+&[| (phi and psi) |]_cal(M) = 1\
+<=> &min( [|phi|]_cal(M), [|psi|]_cal(M) ) = 1\
+<=> &[|phi|]_cal(M) = 1 quad "and" quad [|psi|]_cal(M) = 1
+$$
+
+$cal(M) models phi$かつ$cal(M) models psi$と同値である。
+
+**6の証明**
+$cal(M) models (forall x (phi))$を仮定すると、$[| (forall x (phi)) |]_cal(M) = 1$である。よって、
+
+$$
+&[| (forall x (phi)) |]_cal(M) = 1\
+<=> &min_( v in |cal(M)| ) ( [| phi[overline(v) \/ x] |]_cal(M) ) = 1\
+<=> &forall v in |cal(M)|, [| phi[overline(v) \/ x] |]_cal(M) = 1
+$$
+
+$forall v in |cal(M)|, cal(M) models phi[ overline(v) \/ x ]$と同値である。
+
+**7の証明**
+$cal(M) models (exists x (phi))$を仮定すると、$[| (exists x (phi)) |]_cal(M) = 1$である。 よって、
+$$
+&[| (exists x (phi)) |]_cal(M) = 1\
+<=> &max_( v in |cal(M)| ) ( [| phi[overline(v) \/ x] |]_cal(M) ) = 1\
+<=> &exists v in |cal(M)|, [| phi[overline(v) \/ x] |]_cal(M) = 1
+$$
+
+$exists v in |cal(M)|, cal(M) models phi[ overline(v) \/ x ]$と同値である。
 :::
 
+## 意味論の性質
+一階述語論理の意味論と意味的等価性をここまでで定義した。それらを用いることで一階述語論理の「書き換え」を行うことができる。命題論理では以下のようなド・モルガンの法則があった。
+
+$$
+not (phi and psi) approx (not phi) or (not psi)\
+not (phi or psi) approx (not phi) and (not psi)
+$$
+
+一階述語論理においても結合子の意味論は命題論理のものと同じなので同様の法則が成り立つ。加えて、一階述語論理特有の量子化に関連する性質がいくつか存在する。
+
+:::column-toc
+@title: 【定理】否定と量子化の交換
+
+**【主張】**
+一階述語論理の式$phi in italic("Form")$について以下が成り立つ。
+
+1. $not (forall x (phi)) approx exists x (not phi)$
+2. $not (exists x (phi)) approx forall x (not phi)$
+3. $forall x (phi) approx not exists x (not phi)$
+4. $exists x (phi) approx not forall x (not phi)$
+
+**【証明】**
+1から4までは、同様に示せるのでここでは例として1を示す。
+
+任意の構造$cal(M)$について示す。まず、$cal(M) models not (forall x (phi))$を仮定する。このとき、$[| not (forall x (phi)) |]_cal(M) = 1$である。よって、
+$$
+&[| not (forall x (phi)) |]_cal(M) = 1\
+<=> &[| (forall x (phi)) |]_cal(M) = 0\
+<=> &min_( v in |cal(M)| ) ( [| phi[overline(v) \/ x] |]_cal(M) ) = 0\
+<=> &exists v in |cal(M)|, [| phi[overline(v) \/ x] |]_cal(M) = 0\
+<=> &exists v in |cal(M)|, [| not phi[overline(v) \/ x] |]_cal(M) = 1\
+<=> &max_( v in |cal(M)| ) ( [| not phi[overline(v) \/ x] |]_cal(M) ) = 1\
+<=> &[| exists x (not phi) |]_cal(M) = 1
+$$
+
+つまり、$cal(M) models exists x (not phi)$であり、同値変形のみであるため、逆も成り立つ。これがすべての構造で成り立つので、
+$$
+models (not (forall x (phi)) <-> exists x (not phi))
+$$
+が成り立ち、$not (forall x (phi)) approx exists x (not phi)$が成り立つ。
+
+:::
+
+:::column-toc
+@title: 【定理】量子化の交換と削除
+
+**【主張】**
+一階述語論理の式$phi in italic("Form")$について以下が成り立つ。
+
+1. $forall x (forall y (phi)) approx forall y (forall x (phi))$
+2. $exists x (exists y (phi)) approx exists y (exists x (phi))$
+3. $x in.not italic("FV")(phi)$のとき$forall x (phi) approx phi$
+4. $x in.not italic("FV")(phi)$のとき$exists x (phi) approx phi$
+
+**【証明】**
+1と2、3と4は同様に示せるのでここでは例として1と3を示す。
+
+**1の証明**
+任意の構造$cal(M)$について示す。まず、$cal(M) models forall x (forall y (phi))$を仮定する。このとき、$[| forall x (forall y (phi)) |]_cal(M) = 1$である。よって、
+$$
+&[| forall x (forall y (phi)) |]_cal(M) = 1\
+<=> &min_( v in |cal(M)| ) ( [| forall y (phi)[overline(v) \/ x] |]_cal(M) ) = 1\
+<=> &forall v in |cal(M)|, [| forall y (phi)[overline(v) \/ x] |]_cal(M) = 1\
+<=> &forall v in |cal(M)|, min_( w in |cal(M)| ) ( [| phi[overline(v) \/ x, overline(w) \/ y] |]_cal(M) ) = 1\
+<=> &forall v in |cal(M)|, forall w in |cal(M)|, [| phi[overline(v) \/ x, overline(w) \/ y] |]_cal(M) = 1\
+<=> &forall w in |cal(M)|, forall v in |cal(M)|, [| phi[overline(v) \/ x, overline(w) \/ y] |]_cal(M) = 1\
+<=> &forall w in |cal(M)|, [| forall x (phi)[overline(w) \/ y] |]_cal(M) = 1\
+<=> &[| forall y (forall x (phi)) |]_cal(M) = 1
+$$ 
+
+つまり、$cal(M) models forall y (forall x (phi))$であり、同値変形のみであるため、逆も成り立つ。これがすべての構造で成り立つので、
+$$
+models (forall x (forall y (phi)) <-> forall y (forall x (phi)))
+$$
+が成り立ち、$forall x (forall y (phi)) approx forall y (forall x (phi))$が成り立つ。
+
+**3の証明**
+任意の構造$cal(M)$について示す。まず、$cal(M) models forall x (phi)$を仮定する。このとき、$[| forall x (phi) |]_cal(M) = 1$である。また、$x in.not italic("FV")(phi)$であるとすると、$phi[overline(v) \/ x] = phi$が成り立つ。よって、
+$$
+&[| forall x (phi) |]_cal(M) = 1\
+<=> &min_( v in |cal(M)| ) ( [| phi[overline(v) \/ x] |]_cal(M) ) = 1\
+<=> &min_( v in |cal(M)| ) ( [| phi |]_cal(M) ) = 1\
+<=> &[| phi |]_cal(M) = 1
+$$
+つまり、$cal(M) models phi$であり、同値変形のみであるため、逆も成り立つ。これがすべての構造で成り立つので、
+$$
+models (forall x (phi) <-> phi)
+$$
+が成り立ち、$forall x (phi) approx phi$が成り立つ。
+
+:::
+
+:::column-toc
+@title: 【定理】量子化と論理結合子の分配
+
+**【主張】**
+一階述語論理の式$phi,psi in italic("Form")$について以下が成り立つ。
+1. $forall x (phi and psi) approx (forall x (phi)) and (forall x (psi))$
+2. $exists x (phi or psi) approx (exists x (phi)) or (exists x (psi))$
+3. $x in.not italic("FV")(psi)$のとき$forall x (phi or psi) approx (forall x (phi)) or (psi)$
+4. $x in.not italic("FV")(psi)$のとき$exists x (phi and psi) approx (exists x (phi)) and (psi)$
+
+:::
