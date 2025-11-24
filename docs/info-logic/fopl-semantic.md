@@ -837,3 +837,63 @@ $$
 これらの公理からなる理論を **実閉体の理論(theory of real closed fields)** といい、通常これらの文を$T_"RCF"$と表す。
 
 実閉体の理論は実数体$RR$の性質を完全に捉えていることが知られている。つまり、$RR$と同じようなモデルを持つ理論はすべて実閉体の理論に含まれる公理を満たし、これらの一階述語論理を用して証明できる。
+
+## (sec-equality-axioms)= 等号の公理
+今までの定義では等号について特別な扱いをしてきた。なぜなら、等号はすべての言語・構造で以下を満たすものとするためである。
+
+$$
+[|t_1 = t_2|]_cal(M) = cases(
+  1 quad "if" quad [|t_1|]_cal(M) = [|t_2|]_cal(M),
+  0 quad "otherwise"
+) quad (t_1, t_2 in italic("Term"))
+$$
+
+そして等号は下の文を常に満たすことが求められる。これを **等号の公理(schema of equality axioms)** という。
+
+1. 反射律
+   $$
+   forall x (x = x)
+   $$
+2. 対称律
+   $$
+   forall x forall y ( (x = y) -> (y = x) )
+   $$
+3. 推移律
+   $$
+   forall x forall y forall z ( (x = y and y = z) -> (x = z) )
+   $$
+4. 関数記号に関する公理
+   $$
+   forall x_1 forall x_2 ... forall x_n forall y_1 forall y_2 ... forall y_n \
+   ( (x_1 = y_1 and x_2 = y_2 and ... and x_n = y_n) -> ( f_i (x_1, x_2, ..., x_n) = f_i (y_1, y_2, ..., y_n) ) )
+   $$
+5. 述語記号に関する公理
+   $$
+   forall x_1 forall x_2 ... forall x_n forall y_1 forall y_2 ... forall y_n \
+   ( (x_1 = y_1 and x_2 = y_2 and ... and x_n = y_n) -> ( P_i (x_1, x_2, ..., x_n) <-> P_i (y_1, y_2, ..., y_n) ) )
+   $$
+
+4,5はスキーマであり、すべての関数記号$f_i$と述語記号$P_i$について成り立つ。
+
+## 恒等言語
+関数記号、定数記号を含まず、アリティ2の等号だけを含むシグネチャを$L_"id"$とし **恒等言語(language of identity)** と呼ぶ。これと同じシミラリティタイプ$angle.l ;;0 angle.r$を持つ構造$cal(M)$は必然的に$angle.l |cal(M)| angle.r$となる。ここでは関数記号も定数記号もないので @sec-equality-axioms の4,5は不要である。
+
+## ユニバースの濃度を調べる
+私たちは一階述語論理を用いてユニバース内での性質について言及してきた。そこで、次に子のユニバースの濃度が有限濃度で$n$であることを表してみよう。するとこれは
+
+1. 異なる要素が$n$個存在すること（濃度が$n$以上であること）
+   $$
+   phi_n = exists x_1 exists x_2 ... exists x_n ( and.big_(i eq.not j) ( x_i eq.not x_j ) )
+   $$
+2. $n+1$個集めると必ず等しい要素が存在すること（濃度が$n$以下であること）
+   $$
+   psi_n = forall x_1 forall x_2 ... forall x_(n+1) ( or.big_(i eq.not j) ( x_i = x_j ) )
+   $$
+
+で表される。つまり、$|M| = n$であることはその構造内の一階述語論理式で
+$$
+cal(M) models (phi_n and psi_n)
+$$
+が成り立つことで表現できる。なお、これは同値である。
+
+では無限濃度であることはそのユニバース内の一階述語論理式で表現できるだろうか？これは不可能であることが知られている。
