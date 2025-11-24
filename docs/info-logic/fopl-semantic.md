@@ -646,3 +646,194 @@ $$
 9. いづれの形にも一致しない場合は$x in.not italic("FV")(phi)$なる変数$x$を取り、$psi = forall x (phi)$とすればよい。これは明らかに意味的に等価である。
 
 :::
+
+# 理論
+
+## 理論の定義
+シグネチャ$L$について **理論(theory)**$T$とは、$L$の文の集合である。つまり、
+$$
+T subset.eq italic("Sent")(L)
+$$
+である。次に、構造$cal(M)$が理論$T$の **モデル(model)** であるとは、$forall phi in T$について$cal(M) models phi$が成り立つことである。
+理論は **公理系(axiomatic system)** としても捉えられ、理論$T$の **公理(axiom)** とは$T$に含まれる文のことである。これら、公理という「文」から始め、全体を構築することができる。ここから様々な理論を紹介する。
+
+## (sec-group-theory)=「群」の理論
+群は以下の3つの公理で定義される代数的構造である。ここで、$dot$はアリティ2の関数記号、$e$は定数記号、$(-1)$はアリティ1の関数記号である。
+1. 結合律: 
+   $$
+   forall x forall y forall z ( (x dot y) dot z = x dot (y dot z) )
+   $$
+2. 単位元の存在:
+   $$
+    forall x ( e dot x = x dot e = x )
+   $$
+3. 逆元の存在:
+   $$
+   forall x ( x dot (x)^(-1) = (x)^(-1) dot x = e )
+   $$
+
+これらの公理からなる理論を **群の理論(theory of groups)** といい、通常この三つの文を$T_"group"$と表す。
+
+## 「アーベル群」の理論
+アーベル群は群の公理（@sec-group-theory）に加えて以下の公理を満たす代数的構造である。
+
+4. 可換律:
+   $$
+   forall x forall y ( x dot y = y dot x )
+   $$
+
+この公理を群の理論に加えたものを **アーベル群の理論(theory of abelian groups)** といい、通常この四つの文を$T_"abelian"$と表す。
+
+## (sec-partial-theory)=「半順序」の理論
+半順序は以下の2つの公理で定義される順序関係である。ここで、$<=$はアリティ2の述語記号である。
+
+1. 反対称律:
+   $$
+   forall x forall y ( ( x <= y and y <= x ) -> x = y )
+   $$
+2. 推移律:
+   $$
+   forall x forall y forall z ( ( x <= y and y <= z ) -> x <= z )
+   $$
+
+これらの公理からなる理論を **半順序の理論(theory of partial orders)** といい、通常この二つの文を$T_"poset"$と表す。
+
+## 「全順序」の理論
+全順序は半順序の公理（@sec-partial-theory）に加えて以下の公理を満たす順序関係である。
+
+3. 全域性:
+   $$
+   forall x forall y ( x <= y or y <= x )
+   $$
+
+この公理を半順序の理論に加えたものを **全順序の理論(theory of total orders)** といい、通常この三つの文を$T_"totalorder"$と表す。
+
+## 「ペアノ算術」の理論
+ペアノ算術は自然数の基本的な性質を定義する理論である。以下の6つの基本的な関数記号や関数記号に関する公理と数学的帰納法の公理スキーマで定義される。ここで、$0$は定数記号、$S$はアリティ1の関数記号、$+$と$dot$はそれぞれアリティ2の関数記号である。
+
+1. 0が始まりである。
+   $$
+   forall x not (S(x) = 0)
+   $$
+2. 異なる数は異なる後者を持つ。
+   $$
+   forall x forall y ( S(x) = S(y) -> x = y )
+   $$
+3. 0は加法の単位元である。
+   $$
+   forall x ( x + 0 = x )
+   $$
+4. 加法の帰納法的定義
+   $$
+   forall x forall y ( x + S(y) = S(x + y) )
+   $$
+5. 乗法の帰納法的定義
+   $$
+   forall x forall y ( x dot 0 = 0 )\
+   forall x forall y ( x dot S(y) = (x dot y) + x )
+   $$
+6. 数学的帰納法の公理スキーマ
+    $$
+    ( phi[ 0 \/ x ] and forall x ( phi[ x \/ x ] -> phi[ S(x) \/ x ] ) ) -> forall x ( phi )
+    $$
+    ただし、$phi in italic("Form")$は自由変数$x$を含む一階述語論理式である。
+
+これらの公理からなる理論を **ペアノ算術の理論(theory of Peano arithmetic)** といい、通常この六つの文と数学的帰納法の公理スキーマを$T_"PA"$と表す。
+
+:::column
+@title: 【補足】数学的帰納法の公理「スキーマ」について
+
+数学的帰納法の公理スキーマとは、自由変数$x$を含む任意の一階述語論理式$phi in italic("Form")$に対して以下の文が公理として含まれることを意味する。
+$$
+( phi[ 0 \/ x ] and forall x ( phi[ x \/ x ] -> phi[ S(x) \/ x ] ) ) -> forall x ( phi )
+$$
+つまり、公理の「鋳型」のようなものであり、どんな式$phi$についてもこの形の文が公理として含まれることを意味する。無限個の公理を作り出せる。
+
+これが、スキーマではなく真に公理として認められるには @fopl-define/sec-abstract-fopl の @fopl-define/sec-higher-order で述べた通り「すべての述語$S$について」という量子化が必要である。今回の形で言うなら「すべての$phi$について」を意味する量子化になる。しかし、一階述語論理ではこのような高階の量子化は扱えないため、スキーマとして公理を定義している。二階述語論理で可能になる。
+
+:::
+
+また、述語記号$<$を追加し、以下の公理を加えることで「順序付きペアノ算術(theory of ordered Peano arithmetic)」を定義できる。
+
+7. 0はすべての数より小さい。
+   $$
+   forall x ( 0 <= x )
+   $$
+8. 後者は元の数より大きい。
+   $$
+   forall x forall y ( x < S(y) <-> ( x < y or x = y ) )
+   $$
+
+## 「実閉体」の理論
+実閉体は以下の公理で定義される理論である。少し複雑なのでシグネチャから見ていくとする。シグネチャ$L_"RCF"$は以下の記号からなる。
+
+- 定数記号$0$と$1$
+- アリティ2の関数記号$+$と$dot$
+- アリティ1の関数記号$-$
+- アリティ2の述語記号$<$と$=$
+
+このシグネチャに対して、以下の公理を考える。
+
+1. 体の公理: 加法、乗法、分配法則など、体を定義する公理群
+    - $1$と$0$が異なること
+      $$
+      not (0 = 1)
+      $$
+    - 分配法則
+      $$
+      forall x forall y forall z ( x dot (y + z) = (x dot y) + (x dot z))
+      $$
+    - 1は乗法の単位元
+      $$
+      forall x ( x dot 1 = x )
+      $$
+    - 0以外は乗法の逆元が存在すること
+      $$
+      forall x(not(x = 0) -> exists y ( x dot y = 1 ))
+      $$
+    - 乗法の結合法則
+      $$
+      forall x forall y forall z ( (x dot y) dot z = x dot (y dot z))
+      $$
+    - 0は加法の単位元
+      $$
+      forall x ( x + 0 = x )
+      $$
+    - 加法の逆元
+      $$
+      forall x ( x + (-x) = 0 )
+      $$
+    - 加法の結合法則
+      $$
+      forall x forall y forall z ( (x + y) + z = x + (y + z))
+      $$
+2. 順序体の公理: 順序関係$<$に関する公理群
+    - 正の乗法の閉包性
+      $$
+      forall x forall y ( (0 < x and 0 < y) -> 0 < (x dot y) )
+      $$
+    - 加法の単調性
+      $$
+      forall x forall y forall z ( ( x < y ) -> ( x + z < y + z ) )
+      $$
+    - 推移律
+      $$
+      forall x forall y forall z ( ( x < y and y < z ) -> x < z )
+      $$
+    - 順序の全域性
+      $$
+      forall x forall y ( x < y or x = y or y < x )
+      $$
+3. 実閉体の公理
+    - 平方根の存在
+      $$
+      forall x ( 0 < x -> exists y ( y dot y = x ) )
+      $$
+    - 奇数次多項式の根の存在（スキーマ）
+      $$
+      forall a_0 forall a_1 ... forall a_(2n) ( exists x ( a_(2n) dot x^(2n) + a_(2n-1) dot x^(2n-1) + ... + a_1 dot x + a_0 = 0 ) )
+      $$
+
+これらの公理からなる理論を **実閉体の理論(theory of real closed fields)** といい、通常これらの文を$T_"RCF"$と表す。
+
+実閉体の理論は実数体$RR$の性質を完全に捉えていることが知られている。つまり、$RR$と同じようなモデルを持つ理論はすべて実閉体の理論に含まれる公理を満たし、これらの一階述語論理を用して証明できる。
