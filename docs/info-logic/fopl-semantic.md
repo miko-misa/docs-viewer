@@ -225,6 +225,7 @@ $$
 ただし、$phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ] = phi[ overline(v_1) \/ x_a_1 ][ overline(v_2) \/ x_a_2 ] ... [ overline(v_n) \/ x_a_n ]$である。このとき、$phi[ overline(v_1) \/ x_a_1, overline(v_2) \/ x_a_2, ..., overline(v_n) \/ x_a_n ]$はすでに文となっており、含まれている全ての項は閉項となっていることに注意されたい。なお、この順番によらず、どの順番で置換しても同じ結果になることは以下の補題で示しており、複数の変数をこのように置換することは **同時代入** と呼ばれる。
 
 :::column-toc
+(lem-simultaneous-substitution)=
 @title: 【補題】同時代入の順序の独立性
 
 **【主張】**
@@ -362,6 +363,7 @@ $$
 一階述語論理においても結合子の意味論は命題論理のものと同じなので同様の法則が成り立つ。加えて、一階述語論理特有の量子化に関連する性質がいくつか存在する。
 
 :::column-toc
+(thm-neg-quant)=
 @title: 【定理】否定と量子化の交換
 
 **【主張】**
@@ -395,6 +397,7 @@ $$
 :::
 
 :::column-toc
+(thm-quantifier-commute)=
 @title: 【定理】量子化の交換と削除
 
 **【主張】**
@@ -444,6 +447,7 @@ $$
 :::
 
 :::column-toc
+(thm-distribution-quantifiers-connectives)=
 @title: 【定理】量子化と論理結合子の分配
 
 **【主張】**
@@ -509,3 +513,134 @@ $$
 $$
 よって、$exists x (phi and psi) approx (exists x (phi)) and (psi)$である。
 :::
+
+:::column-toc
+(thm-substitution-order)=
+@title: 【定理】代入の順序の交換
+
+ここでは @lem-simultaneous-substitution よりも強い主張を示す。
+**【主張】**
+$phi,psi,sigma in italic("Form"), x,y in italic("Var"), s,t,r in italic("Term")$とする。また、$dollar_1, dollar_2$をプレースホルダーとする。このとき、以下が成り立つ。
+
+1. $x eq.not y$かつ$x in.not italic("FV")(r)$のとき
+    $$
+    t[ s \/ x ][ r \/ y ] = t[ r \/ y ][ (s[ r \/ y ]) \/ x ]
+    $$
+2. $x eq.not y$かつ$y in.not italic("FV")(s)$で
+   $ t "is free for" x "in" phi $で
+   $ s "is free for" y "in" phi $のとき
+   （つまり$phi[ t \/ x ][ s \/ y ]$が適切であるとき）
+    $$
+    phi[ t \/ x ][ s \/ y ] = phi[ s \/ y ][ (t[ s \/ y ]) \/ x ]
+    $$
+3. $psi "is free for" dollar_1 "in" phi $で
+   $t "is free for" x "in" phi$のとき
+   （つまり$phi[ psi \/ dollar_1 ][ t \/ x ]$が適切であるとき）
+    $$
+    phi[ psi \/ dollar_1 ][ t \/ x ] = phi[ t \/ x ][ (psi[ t \/ x ]) \/ dollar_1 ]
+    $$
+4. $phi "is free for" dollar_1 "in" sigma $で
+   $psi "is free for" dollar_2 "in" sigma$のとき
+   （つまり$sigma[ phi \/ dollar_1 ][ psi \/ dollar_2 ]$が適切であるとき）
+    $$
+    sigma[ phi \/ dollar_1 ][ psi \/ dollar_2 ] = sigma[ psi \/ dollar_2 ][ (phi[ psi \/ dollar_2 ]) \/ dollar_1 ]
+    $$
+
+**【証明】**
+代入を二回行ったとき、一回目と代入の結果に二回目の代入を行うが、これを入れ替えると元の式に対して二回目の代入を行い、その後一回目の代入については新しく代入される部分を先に二回目の代入で置換したものを代入する、という形になる。詳細な証明は略す。
+:::
+
+:::column-toc
+(thm-bound-variable-renaming)=
+@title: 【定理】束縛変数の名前替え
+
+**【主張】**
+一階述語論理の式$phi in italic("Form")$と変数$x,y in italic("Var")$について、$y in.not italic("FV")(phi)$ならば
+
+$$
+forall x (phi) approx forall y (phi[ y \/ x ])\
+exists x (phi) approx exists y (phi[ y \/ x ])
+$$
+:::
+
+:::column-toc
+(cor-quantifier-distribution)=
+@title: 【系】量子化のくくりだし
+
+@thm-distribution-quantifiers-connectives では全称量子化と連言、存在量子化と選言の組み合わせではよい性質があった。 ここでは、全称量子化と選言、存在量子化と連言の組み合わせについて言えることがある。
+
+**【主張】**
+一階述語論理の式$phi,psi in italic("Form")$と変数$x,y,z in italic("Var")$について、$x in.not italic("FV")(psi), y in.not italic("FV")(phi)$ならば
+
+- $forall x phi(x) or forall x psi(x) approx forall x forall y ( phi(x) or psi(y) )$
+- $exists x phi(x) and exists x psi(x) approx exists x exists y ( phi(x) and psi(y) )$
+
+なお、$phi(x)$とは自由変数$x$を含む式、$psi(y)$とは自由変数$y$を含む式であることを示している。
+
+**【証明】**
+@thm-bound-variable-renaming より明らかである。
+
+:::
+
+## 冠頭標準系
+命題論理にも標準系があったように、一階述語論理にも標準系が存在する。それが **冠頭標準系(prenex normal form)** である。冠頭標準系とは、すべての量子化が式の先頭にまとまっている形のことである。例えば、以下のような形である。
+$$
+forall x exists y forall z ( phi )
+$$
+ここで、$phi$は量子化を含まない式である。下でその存在を示すが、証明そのものがその構成方法を与えている。
+
+:::column-toc
+(thm-prenex-normal-form)=
+@title: 【定理】冠頭標準の存在
+**【主張】**
+任意の一階述語論理式$phi in italic("Form")$に対して、冠頭標準系$psi in italic("Form")$が存在して、
+$$
+phi approx psi <=> thin models (phi <-> psi)
+$$
+が成り立つ。
+
+**【証明】**
+帰納法で示す。まず、$phi$が量子化を含まない場合、$phi$自体が冠頭標準系であるので、$psi = phi$とすればよい。
+次に、$phi$が量子化を含む場合を考える。仮定法の仮定から$sigma, tau in italic("Form")$が存在して、量子化を含まないとする。
+
+1. $phi = not forall x (sigma)$のとき、$psi = exists x (not sigma)$とすればよい。なぜなら@thm-neg-quant より
+   $$
+   not forall x (sigma) approx exists x (not sigma)
+   $$
+   が成り立つからである。
+2. $phi = not exists x (sigma)$のとき、$psi = forall x (not sigma)$とすればよい。なぜなら@thm-neg-quant より
+   $$
+   not exists x (sigma) approx forall x (not sigma)
+   $$
+   が成り立つからである。
+3. $phi = (forall x (phi) and forall x (tau))$のとき、$psi = forall x (phi and tau)$とすればよい。なぜなら@thm-distribution-quantifiers-connectives より
+   $$
+   forall x (phi) and forall x (tau) approx forall x(phi and tau)
+   $$
+   が成り立つからである。
+4. $phi = (exists x (phi) or exists x (tau))$のとき、$psi = exists x (phi or tau)$とすればよい。なぜなら@thm-distribution-quantifiers-connectives より
+   $$
+   exists x (phi) or exists x (tau) approx exists x (phi or tau)
+   $$
+    が成り立つからである。
+5. $phi =(exists x (sigma) and tau)$のとき、$z in.not italic("FV")(tau)$なる変数$z$を取り、$psi = exists z (sigma[ z \/ x ] and tau)$とすればよい。なぜなら@thm-distribution-quantifiers-connectives より
+   $$
+   exists x (sigma) and tau approx exists z (sigma[ z \/ x ] and tau)
+   $$
+   が成り立つからである。
+6. $phi =(forall x (sigma) or tau)$のとき、$z in.not italic("FV")(tau)$なる変数$z$を取り、$psi = forall z (sigma[ z \/ x ] or tau)$とすればよい。なぜなら@thm-distribution-quantifiers-connectives より
+   $$
+   forall x (sigma) or tau approx forall z (sigma[ z \/ x ] or tau)
+   $$
+   が成り立つからである。
+7. $phi = (forall x (sigma) or forall y (tau))$のとき、$x' in.not italic("FV")(tau), y' in.not italic("FV")(sigma)$なる変数$x',y'$を取り、$psi = forall x' forall y' (sigma[ x' \/ x ] or tau[ y' \/ y ])$とすればよい。なぜなら@cor-quantifier-distribution より
+    $$
+    forall x (sigma) or forall y (tau) approx forall x' forall y' ( sigma[ x' \/ x ] or tau[ y' \/ y ] )
+    $$
+   が成り立つからである。
+8. $phi = (exists x (sigma) and exists y (tau))$のとき、$x' in.not italic("FV")(tau), y' in.not italic("FV")(sigma)$なる変数$x',y'$を取り、$psi = exists x' exists y' (sigma[ x' \/ x ] and tau[ y' \/ y ])$とすればよい。なぜなら@cor-quantifier-distribution より
+    $$
+    exists x (sigma) and exists y (tau) approx exists x' exists y' ( sigma[ x' \/ x ] and tau[ y' \/ y ] )
+    $$
+   が成り立つからである。
+9. いづれの形にも一致しない場合は$x in.not italic("FV")(phi)$なる変数$x$を取り、$psi = forall x (phi)$とすればよい。これは明らかに意味的に等価である。
