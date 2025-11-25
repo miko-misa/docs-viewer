@@ -134,13 +134,13 @@ rule(
     )
     :::
 2. **存在量化子の除去規則**
-    $c$は定数記号もしくは変数記号で、$c "is free for" x "in" phi$である。また、$c$は$Gamma$や$Delta$内に現れないものとする。このとき、
+    $c$は定数記号もしくは変数記号で、$c "is free for" x "in" phi$である。また、$c$は$Gamma$や$Delta$内の式に現れないものとする。このとき、
     :::prooftree
     rule(
       name:[$exists "E"_1$],
       $psi$,
       align(center)[#stack(dir: ttb, spacing: 4pt)[$Gamma$][$dots.v$][$exists x (phi)$]],
-      align(center)[#stack(dir: ttb, spacing: 4pt)[$Delta quad [phi[c \/ x]]^2$][$dots.v$][$psi$]],
+      align(center)[#stack(dir: ttb, spacing: 4pt)[$Delta thick thick [phi[c \/ x]]^1$][$dots.v$][$psi$]],
     )
     :::
 
@@ -188,9 +188,20 @@ $$
     $$
     v = [| t |]^cal(M)_s
     $$
-    とおき、$s$を$t$内の自由変数$x_i$を$v_i$に割り当てたものとする。こうすると、
+    とおくと
     $$
-    v = [| t[overline(v_1) \/ x_1, dots, overline(v_n) \/ x_n] |]_cal(M)
+    [|overline(v)|]^cal(M)_s = v = [| t |]^cal(M)_s
     $$
+    であるので、
+    $$
+    [|phi[overline(v) \/ x]|]^cal(M)_s = [|phi[t \/ x]|]^cal(M)_s
+    $$
+    が成り立つ。したがって、
+    $$
+    [|phi[t \/ x]|]^cal(M)_s = 1
+    $$
+    である。これがすべての解釈$(cal(M), s) in V(Gamma)$について成り立つため、$Gamma models phi[t \/ x]$である。
+
+以上より、すべての推論規則について健全性が成り立つため、自然演繹法全体についても健全性が成り立つことが示された。$square.filled$
 
 :::
