@@ -137,10 +137,10 @@ rule(
     $c$は定数記号もしくは変数記号で、$c "is free for" x "in" phi$である。また、$c$は$Gamma$や$Delta$内の式に現れないものとする。このとき、
     :::prooftree
     rule(
-      name:[$exists "E"_1$],
+      name:[$exists "E"_ell$],
       $psi$,
       align(center)[#stack(dir: ttb, spacing: 4pt)[$Gamma$][$dots.v$][$exists x (phi)$]],
-      align(center)[#stack(dir: ttb, spacing: 4pt)[$Delta thick thick [phi[c \/ x]]^1$][$dots.v$][$psi$]],
+      align(center)[#stack(dir: ttb, spacing: 4pt)[$Delta thick thick [phi[c \/ x]]^ell$][$dots.v$][$psi$]],
     )
     :::
 
