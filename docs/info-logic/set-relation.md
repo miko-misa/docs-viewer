@@ -739,7 +739,7 @@ $$
 **整礎帰納法(Well-founded induction)** とは、集合$A$上の整礎関係$R$に対して成り立つ命題$P(a)$がすべての元$a in A$に対して成り立つことを示すための方法である。整礎帰納法は以下を示すことで成り立つ。
 
 $$
-forall a in A, forall b "with " a R b, P(b) => P(a)
+forall a in A((forall b "with " a R b, P(b)) => P(a))
 $$
 
 これが成り立つとき、すべての元$a in A$に対して$P(a)$が成り立つことが示せる。

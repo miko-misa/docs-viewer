@@ -196,7 +196,7 @@ models phi
 $$
 と書く。このとき、式$phi$は **恒真(valid)** であるという。
 
-## 論理的帰結
+## (sec-logical-consequence)= 論理的帰結
 $Gamma$を@fopl-define/sec-sentenceの集合とする。このとき、すべての$psi in Gamma$について$cal(M) models psi$が成り立つとき、構造$cal(M)$は$Gamma$を充足しているという。これを
 $$
 cal(M) models Gamma
@@ -278,6 +278,7 @@ $$
 さらに、より一般的な解釈の定義を以下に参考までに示す。
 
 :::column
+(sec-general-interpretation)=
 @title: より一般的な解釈の定義
 
 **変数割当(variable assignment)** $s$とは、自由変数からユニバースの元への写像であり、$s: italic("FV")(phi) -> |cal(M)|$である。このとき、項（@fopl-define/sec-closed-term でなくてもよい）に対する解釈$[| t |]^cal(M)_s$を以下のように定義しなおす。
