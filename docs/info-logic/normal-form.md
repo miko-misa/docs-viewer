@@ -160,9 +160,9 @@ $$
 
 この演算は`NAND`と呼ばれ、これだけで関数的に完全である。そのため、コンピュータはこの`NAND`回路を組み合わせて作られている。
 
-# 標準系
+# 標準形
 
-命題論理式を特定の形式に変形したものを **標準系 (normal form) ** という。代表的なものに **否定標準系 (negation normal form: "NNF") ** 、 **論理和標準形 (disjunctive normal form: DNF) ** 、 **論理積標準形 (conjunctive normal form: CNF) ** がある。以下でそれぞれを定義し、変形方法を示す。
+命題論理式を特定の形式に変形したものを **標準形 (normal form)** という。代表的なものに **否定標準形 (negation normal form: "NNF")** 、 **論理和標準形 (disjunctive normal form: DNF)** 、 **論理積標準形 (conjunctive normal form: CNF)** がある。以下でそれぞれを定義し、変形方法を示す。
 
 ## リテラル
 
@@ -172,20 +172,20 @@ $bot$も含むことに注意
 :::
 またはその否定$not p$のことである。$p$を正リテラル、$not p$を負リテラルという。
 
-## 否定標準系
+## 否定標準形
 
-命題論理式$phi$が **否定標準系(negation normal form: "NNF")** であるとは、次の条件を満たすときである。
+命題論理式$phi$が **否定標準形(negation normal form: "NNF")** であるとは、次の条件を満たすときである。
 
 1. $phi$に含まれる結合子は$not, and, or, bot$のみである。
 2. $not$は原子命題にのみ作用している。
 
-たとえば、$(p and not q) or (not r and s)$は否定標準系であるが、$not (p or q)$や$not not p$は否定標準系ではない。
+たとえば、$(p and not q) or (not r and s)$は否定標準形であるが、$not (p or q)$や$not not p$は否定標準形ではない。
 
 ---
 
-任意の命題$phi$に対して、等価な否定標準系$phi'$を構成することができる。これは${and, or, not, bot}$が関数的に完全であるためである。また次に説明するような変換を行う写像を定義することができる。
+任意の命題$phi$に対して、等価な否定標準形$phi'$を構成することができる。これは${and, or, not, bot}$が関数的に完全であるためである。また次に説明するような変換を行う写像を定義することができる。
 
-### 否定標準系への変換
+### 否定標準形への変換
 
 写像$italic("NNF")$を以下のように定義する。なお、$p$は原子命題、$phi, psi$は任意の命題とする。
 
@@ -204,7 +204,7 @@ italic("NNF")(not (phi -> psi)) &= italic("NNF")(phi and not psi) \
 italic("NNF")(not (phi <-> psi)) &= italic("NNF")((phi and not psi) or (not phi and psi))
 $$
 
-このとき、任意の命題$phi$に対して、$phi approx italic("NNF")(phi)$であり、$italic("NNF")(phi)$は否定標準系である。
+このとき、任意の命題$phi$に対して、$phi approx italic("NNF")(phi)$であり、$italic("NNF")(phi)$は否定標準形である。
 簡単にいえば、以下のような手順を踏む。
 
 1. $<->$や$->$を$not, and, or$に書き換える。
@@ -268,7 +268,7 @@ $$
 このとき、任意の命題$phi$に対して、$phi approx italic("DNF")(italic("NNF")(phi))$および$phi approx italic("CNF")(italic("NNF")(phi))$であり、$italic("DNF")(italic("NNF")(phi))$は論理和標準形、$italic("CNF")(italic("NNF")(phi))$は論理積標準形である。
 簡単にいえば、以下のような手順を踏む。
 
-1. $phi$を否定標準系に変換する。
+1. $phi$を否定標準形に変換する。
 2. 分配律を適用して論理和標準形または論理積標準形に変換する。
    分配律とは以下の等価式である。
    $$
