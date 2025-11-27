@@ -14,4 +14,5 @@ order:
   - fopl-define
   - fopl-semantic
   - fopl-natural-deduction
+  - herbrand
 

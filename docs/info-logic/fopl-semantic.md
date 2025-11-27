@@ -181,7 +181,7 @@ $$
 
 $italic("FV")(italic("Cl")(phi)) = emptyset$であり、普遍閉包は常に文となる。
 
-## 充足関係
+## (sec-satisfaction)= 充足関係
 一階述語論理式$phi$について$[|italic("Cl")(phi)|]_cal(M) = 1$であるとき、構造$cal(M)$は式$phi$を **充足(satisfy)** しているといい
 $$
 cal(M) models phi

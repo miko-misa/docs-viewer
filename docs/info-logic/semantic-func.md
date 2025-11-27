@@ -137,6 +137,17 @@ $$
 
 :::
 
+## (sec-satisfiable)= 充足可能性
+命題論理の式$phi in italic("PROP")$が **充足可能(satisfiable)** であるとは、ある付値$v$が存在して
+$$
+[| phi |]_v = 1
+$$
+を満たすことである。また、命題論理の式集合$Gamma subset.eq italic("PROP")$が **充足可能(satisfiable)** であるとは、ある付値$v$が存在して
+$$
+[| phi |]_v = 1 quad (forall phi in Gamma)
+$$
+を満たすことである。
+
 ## 意味論的等価性
 
 命題論理の式$phi, psi in italic("PROP")$が **意味論的等価(semantic equivalence)** であるとは、任意の付値$v$について
